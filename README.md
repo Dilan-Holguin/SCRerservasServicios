@@ -14,13 +14,13 @@ Desde PowerShell en este repositorio:
 
 ```powershell
 # Los 11 escenarios originales
-.\ejecutar-pruebas.ps1 -Grupo base11 -SinVentana
+.\ejecutar-pruebas.ps1 -Grupo base11 
 
 # Solo la ampliación ejecutable (47 casos)
-.\ejecutar-pruebas.ps1 -Grupo nuevas -SinVentana
+.\ejecutar-pruebas.ps1 -Grupo nuevas 
 
 # Toda la UI ejecutable (58 casos)
-.\ejecutar-pruebas.ps1 -Grupo ui -SinVentana
+.\ejecutar-pruebas.ps1 -Grupo ui 
 
 # Solo el contrato de correo pendiente del producto
 .\ejecutar-pruebas.ps1 -Grupo pendientes -SinVentana
