@@ -24,9 +24,3 @@ Feature: Cancelar reservas de clientes como proveedor
     When abro la sección "Reservas" de mi panel y pulso "Cancelar reserva"
     And pulso "No, conservarla"
     Then la reserva sigue con estado "CONFIRMADA"
-
-  @TC-066 @negativo @api
-  Scenario: Impedir cancelar reservas de un negocio ajeno
-    Given un proveedor autenticado y una reserva de un servicio de otro proveedor
-    When solicita POST "/api/v1/reservas/{idReserva}/cancelacion" con el identificador de esa reserva
-    Then recibe el estado HTTP 403 y el código "ACCESO_DENEGADO"

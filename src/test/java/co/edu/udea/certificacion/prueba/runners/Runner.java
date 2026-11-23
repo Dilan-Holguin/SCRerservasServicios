@@ -6,8 +6,9 @@ import org.junit.runner.RunWith;
 
 @RunWith(CucumberWithSerenity.class)
 @CucumberOptions(
-        features = "src/test/resources/features/.../",
-        glue = "co.edu.udea.certificacion.stepdefinitions",
-        snippets = CucumberOptions.SnippetType.CAMELCASE
+        features = "src/test/resources/features",
+        glue = "co.edu.udea.certificacion.prueba.stepdefinitions",
+        snippets = CucumberOptions.SnippetType.CAMELCASE,
+        plugin = {"pretty", "json:build/reports/cucumber/resultados.json"}
 )
 public class Runner {}

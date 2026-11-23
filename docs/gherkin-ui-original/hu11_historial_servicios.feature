@@ -24,9 +24,3 @@ Feature: Consultar cambios de los servicios del proveedor
     And filtro por el primero de mis servicios
     Then veo los cambios del primer servicio
     And no veo los cambios del segundo servicio
-
-  @TC-048 @negativo @api
-  Scenario: Impedir consultar el historial de un servicio ajeno
-    Given un proveedor autenticado y un servicio de otro proveedor
-    When solicita GET "/api/v1/servicios/historial" con el idServicio ajeno
-    Then recibe el estado HTTP 403 y el código "ACCESO_DENEGADO"

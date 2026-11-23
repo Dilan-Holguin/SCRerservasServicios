@@ -14,3 +14,7 @@ gradle.app.setting
 
 .classpath
 bin/
+target/
+*.log
+.env
+.gradle-local/

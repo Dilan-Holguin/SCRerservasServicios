@@ -25,37 +25,62 @@ repositories {
 ext {
     serenityVersion = '4.1.0'
     serenityCucumberVersion = '4.1.0'
-    lombokVersion = '1.18.22'
     junit = '4.13.2'
     hamcrest = '1.3'
-    serenityWebVersion = '4.1.0'
 }
 
 dependencies {
     implementation "net.serenity-bdd:serenity-core:$rootProject.ext.serenityVersion"
     implementation "net.serenity-bdd:serenity-junit:$rootProject.ext.serenityVersion"
     implementation "net.serenity-bdd:serenity-screenplay:$rootProject.ext.serenityVersion"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:$rootProject.ext.serenityVersion"
     implementation "net.serenity-bdd:serenity-cucumber:$rootProject.ext.serenityCucumberVersion"
     implementation 'org.slf4j:slf4j-simple:2.0.5'
-    implementation "net.serenity-bdd:serenity-screenplay-webdriver:$rootProject.ext.serenityWebVersion"
 
     //Test compilation
     testImplementation "junit:junit:$rootProject.ext.junit"
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrest"
-    implementation 'org.slf4j:slf4j-simple:2.0.5'
-    testImplementation("io.github.bonigarcia:webdrivermanager:5.4.1")
-
-    //Lombok dependencies
-    compileOnly "org.projectlombok:lombok:${lombokVersion}"
-    annotationProcessor  "org.projectlombok:lombok:${lombokVersion}"
-    testCompileOnly  "org.projectlombok:lombok:${lombokVersion}"
-
-    //Additional library
-    implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.12.0'
 
 }
 
 tasks.named('test') {
-    // System configs
+    useJUnit()
+    include '**/Runner.class'
+    maxParallelForks = 1
+    maxHeapSize = '256m'
+    jvmArgs '-XX:ActiveProcessorCount=2', '-XX:ReservedCodeCacheSize=64m'
+    systemProperty 'serenity.outputDirectory', layout.buildDirectory.dir('reports/serenity').get().asFile.absolutePath
+    doFirst { delete layout.buildDirectory.dir('reports/serenity') }
+    systemProperty 'cucumber.filter.tags', System.getProperty('cucumber.filter.tags',
+            System.getenv('CUCUMBER_FILTER_TAGS') ?: '@ui and not @pendiente_producto')
+    ['reservaya.web.url', 'mailpit.web.url',
+     'cucumber.filter.tags', 'cucumber.execution.dry-run', 'headless.mode', 'webdriver.chrome.driver'].each { key ->
+        if (System.getProperty(key) != null) systemProperty key, System.getProperty(key)
+    }
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+    outputs.upToDateWhen { false }
+    finalizedBy 'reporteSerenity'
+}
 
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+tasks.register('reporteSerenity', JavaExec) {
+    description = 'Genera el reporte HTML de Serenity con los resultados de la última ejecución.'
+    group = 'verification'
+    maxHeapSize = '256m'
+    jvmArgs '-XX:ActiveProcessorCount=2', '-XX:ReservedCodeCacheSize=64m'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'co.edu.udea.certificacion.prueba.support.GenerarReporte'
+    args layout.buildDirectory.dir('reports/serenity').get().asFile.absolutePath
+    onlyIf {
+        System.getProperty('cucumber.execution.dry-run') != 'true' &&
+                !fileTree(layout.buildDirectory.dir('reports/serenity')).matching { include '*.json' }.isEmpty()
+    }
 }

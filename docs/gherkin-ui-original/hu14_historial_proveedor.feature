@@ -29,9 +29,3 @@ Feature: Consultar el historial de reservas del negocio
     Given que ingreso como proveedor con un servicio propio sin reservas
     When abro la sección "Reservas" de mi panel
     Then veo "Todavía no hay reservas"
-
-  @TC-062 @negativo @api
-  Scenario: Impedir filtrar por servicio de otro proveedor
-    Given un proveedor autenticado y un servicio de otro proveedor
-    When solicita GET "/api/v1/reservas/historial" con el idServicio ajeno
-    Then recibe el estado HTTP 403 y el código "ACCESO_DENEGADO"
