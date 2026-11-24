@@ -60,10 +60,17 @@ public class ReservasAmpliadasStepDefinitions {
         actor().attemptsTo(ConsultarTurnosWeb.de(datos().servicio, datos().fecha.toString(), datos().fecha.toString()),
                 FijarFecha.en(FlujosUi.HASTA, datos().fecha.plusDays(dias - 1).toString()));
     }
-    @Then("la ficha informa que el rango maximo es de treinta y un dias")
+    @Then("la ficha rechaza el rango excedido y muestra el limite en la ayuda")
     public void rangoExcedido() {
         actor().attemptsTo(WaitUntil.the(ReservaYa.ALERTA, isVisible()).forNoMoreThan(15).seconds());
-        actor().should(seeThat(Text.of(ReservaYa.ALERTA), containsString("31")));
+        actor().should(
+                seeThat(Text.of(ReservaYa.ALERTA), allOf(containsString("No se pudo consultar la disponibilidad"),
+                        containsString("La solicitud contiene datos inválidos"))),
+                seeThat(Text.of(FlujosUi.DISPONIBILIDAD), containsString("El rango máximo de consulta es de 31 días")),
+                seeThat(ControlesVisibles.fechasDelRango(datos().fecha.toString(), datos().fecha.plusDays(31).toString()), is(true)),
+                seeThat(ControlesVisibles.url(), allOf(containsString("desde=" + datos().fecha),
+                        containsString("hasta=" + datos().fecha.plusDays(31)))),
+                eventually(seeThat(InformacionVisible.cantidadTurnos(), equalTo(0))));
     }
     @Then("la consulta de treinta y un dias ofrece los cinco dias semanales preparados")
     public void rangoLimite() {

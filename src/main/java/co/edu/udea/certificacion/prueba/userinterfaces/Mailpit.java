@@ -11,8 +11,11 @@ public final class Mailpit {
             .located(By.xpath("//*[@role='tab' and normalize-space()='Text']"));
     public static final Target ENLACE = Target.the("enlace de verificación del correo")
             .located(By.cssSelector("#nav-plain-text a[href*='token=']"));
+    public static By selectorMensaje(String email) {
+        return By.xpath("//a[starts-with(@href,'/view/') and contains(.,'" + email + "')]");
+    }
     public static Target mensaje(String email) {
         return Target.the("correo de verificación de la cuenta actual")
-                .located(By.xpath("//a[starts-with(@href,'/view/') and contains(.,'" + email + "')]"));
+                .located(selectorMensaje(email));
     }
 }

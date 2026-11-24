@@ -50,20 +50,20 @@ Los documentos fuente no asignan códigos a los criterios de aceptación. Estos 
 
 ## Ampliación escrita a petición del equipo
 
-Se añadieron **48 escenarios**, con E2E-012 a E2E-059. Hay **59 escenarios en total: 58 seleccionados por el grupo UI normal y un contrato pendiente del producto**. Los nuevos casos no se ejecutaron: la ejecución queda a cargo del usuario.
+Se añadieron **48 escenarios**, con E2E-012 a E2E-059. Hay **59 escenarios en total: 58 seleccionados por el grupo UI normal y un contrato pendiente del producto**. El usuario ejecutó los 47 casos seleccionables de la ampliación: 45 aprobados y 2 fallidos. E2E-042 y E2E-056 tienen ajustes pendientes de repetición; ver el estado de validación. El agente no ejecutó escenarios.
 
 Los CP y TC numéricos son referencias a los casos del plan original; `TC-UI-...`, `CP-UI-15`, `E2E-...` y `CA-UI-...` son identificadores locales. La numeración local no sustituye una aprobación del profesor.
 
 | Área añadida | Casos | Estado |
 |---|---:|---|
-| Validaciones adicionales del registro web | 10 | Escritos; pendientes de ejecución |
-| Seguridad y verificacion de cuenta desde la UI | 6 | Escritos; pendientes de ejecución |
-| Limites y multiples dias de agenda desde la UI | 4 | Escritos; pendientes de ejecución |
-| Editar agenda respetando las reservas existentes | 5 | Escritos; pendientes de ejecución |
-| Eliminar agenda respetando las reservas existentes | 3 | Escritos; pendientes de ejecución |
-| Disponibilidad y reglas adicionales de reserva desde la UI | 8 | Escritos; pendientes de ejecución |
-| Trazabilidad y decisiones de cancelacion desde la UI | 4 | Escritos; pendientes de ejecución |
-| Gestion de recursos y disponibilidad compartida desde la UI | 7 | Escritos; pendientes de ejecución |
+| Validaciones adicionales del registro web | 10 | Ejecución reportada por el usuario; ver estado de validación |
+| Seguridad y verificacion de cuenta desde la UI | 6 | Ejecución reportada por el usuario; ver estado de validación |
+| Limites y multiples dias de agenda desde la UI | 4 | Ejecución reportada por el usuario; ver estado de validación |
+| Editar agenda respetando las reservas existentes | 5 | Ejecución reportada por el usuario; ver estado de validación |
+| Eliminar agenda respetando las reservas existentes | 3 | Ejecución reportada por el usuario; ver estado de validación |
+| Disponibilidad y reglas adicionales de reserva desde la UI | 8 | Ejecución reportada por el usuario; ver estado de validación |
+| Trazabilidad y decisiones de cancelacion desde la UI | 4 | Ejecución reportada por el usuario; ver estado de validación |
+| Gestion de recursos y disponibilidad compartida desde la UI | 7 | Ejecución reportada por el usuario; ver estado de validación |
 | Contrato de notificacion de cancelacion pendiente del producto | 1 | Contrato pendiente del producto |
 
 | Escenario | Comportamiento | HU | CP | TC de referencia o local | Criterio UI local |
@@ -149,7 +149,7 @@ Los CP y TC numéricos son referencias a los casos del plan original; `TC-UI-...
 | CA-UI-40 | el dialogo informa la reserva afectada sin aplicar el cambio; la agenda confirma la eliminacion y queda sin bloques al recargar; la ficha no ofrece turnos fuera de la agenda; la reserva afectada permanece confirmada en el historial. |
 | CA-UI-41 | la ficha refleja el rango elegido y ocho turnos con cupo. |
 | CA-UI-42 | la ficha informa que la fecha inicial es posterior a la final. |
-| CA-UI-43 | la ficha informa que el rango maximo es de treinta y un dias. |
+| CA-UI-43 | la ficha rechaza el rango excedido y muestra el limite en la ayuda. |
 | CA-UI-44 | la ficha no ofrece turnos fuera de la agenda. |
 | CA-UI-45 | el turno de las nueve no se ofrece y el siguiente sigue disponible. |
 | CA-UI-46 | el ingreso solicita autenticarse para confirmar el turno elegido; la reserva pendiente queda confirmada y aparece en el historial. |
@@ -169,6 +169,9 @@ Los CP y TC numéricos son referencias a los casos del plan original; `TC-UI-...
 | CA-UI-60 | ve la confirmacion de recursos retirados. |
 
 ## Límites y pendientes actuales
+
+- E2E-042 verifica un rango de 32 días inclusivos rechazado con un mensaje genérico de datos inválidos, el límite de 31 días explicado en la ayuda y la ausencia de turnos. La UI actual no muestra el detalle de validación de campo dentro del error.
+- La búsqueda en Mailpit tiene dos intentos acotados y actualiza el filtro. Solo las precondiciones de negocio pueden solicitar una vez el reenvío desde la UI; la lectura y verificación del correo siguen siendo obligatorias. Los casos de correo original del registro conservan la modalidad estricta.
 
 - La preparación sigue siendo exclusivamente UI: formularios de registro, correo leído en Mailpit web, ingreso, creación de servicios, agenda y reservas. No se incorporaron clientes REST.
 - El rechazo por recurso ocupado se comprueba como ausencia del turno en el segundo servicio, conservando otros horarios libres. La disponibilidad actual ya filtra recursos ocupados. TC-027/034 son referencias adaptadas; no se fuerza una petición desde una pantalla desactualizada para obtener un código de error.

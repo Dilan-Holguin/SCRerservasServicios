@@ -9,39 +9,76 @@ import net.serenitybdd.screenplay.actions.*;
 import net.serenitybdd.screenplay.waits.WaitUntil;
 import org.openqa.selenium.WindowType;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import net.serenitybdd.annotations.Step;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import static net.serenitybdd.screenplay.Tasks.instrumented;
 import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
 
-/** Lee exclusivamente el correo de la cuenta actual mediante la interfaz de Mailpit. */
+/** Busca el destinatario exacto en Mailpit web, sin consultar su servicio REST. */
 public class LeerCorreoVerificacion implements Interaction {
     public static final String TOKEN = "tokenCorreo";
+    public static final String ENCONTRADO = "correoVerificacionEncontrado";
     private final String email;
-    public LeerCorreoVerificacion(String email) { this.email = email; }
-    public static LeerCorreoVerificacion de(String email) { return instrumented(LeerCorreoVerificacion.class, email); }
+    private final boolean obligatorio;
+    public LeerCorreoVerificacion(String email, boolean obligatorio) {
+        this.email = email;
+        this.obligatorio = obligatorio;
+    }
+    public static LeerCorreoVerificacion de(String email) {
+        return instrumented(LeerCorreoVerificacion.class, email, true);
+    }
+    /** Ausencia tolerada únicamente para decidir si una precondición necesita reenvío. */
+    public static LeerCorreoVerificacion buscarParaPreparacion(String email) {
+        return instrumented(LeerCorreoVerificacion.class, email, false);
+    }
 
-    @Override @Step("{0} consulta su correo de verificación en Mailpit")
+    @Override @Step("{0} busca el correo de verificación del destinatario en Mailpit")
     public <T extends Actor> void performAs(T actor) {
         var driver = BrowseTheWeb.as(actor).getDriver();
         String original = driver.getWindowHandle();
+        actor.forget(TOKEN);
+        actor.remember(ENCONTRADO, false);
         driver.switchTo().newWindow(WindowType.TAB);
         try {
-            actor.attemptsTo(Open.url(ConfiguracionUi.correoUrl()),
-                    WaitUntil.the(Mailpit.BUSQUEDA, isVisible()).forNoMoreThan(30).seconds(),
-                    Enter.theValue("to:" + email).into(Mailpit.BUSQUEDA).thenHit(Keys.ENTER),
-                    WaitUntil.the(Mailpit.mensaje(email), isVisible()).forNoMoreThan(30).seconds(),
-                    Click.on(Mailpit.mensaje(email)));
-            if (Mailpit.TEXTO.resolveFor(actor).isVisible()) actor.attemptsTo(Click.on(Mailpit.TEXTO));
+            boolean encontrado = false;
+            // La segunda búsqueda vuelve a cargar la bandeja y consulta de nuevo el filtro.
+            // No depende únicamente de que el websocket actualice los resultados abiertos.
+            for (int intento = 0; intento < 2 && !encontrado; intento++) {
+                actor.attemptsTo(Open.url(ConfiguracionUi.correoUrl()),
+                        WaitUntil.the(Mailpit.BUSQUEDA, isVisible()).forNoMoreThan(30).seconds(),
+                        Enter.theValue("to:" + email).into(Mailpit.BUSQUEDA).thenHit(Keys.ENTER));
+                try {
+                    new WebDriverWait(driver, Duration.ofSeconds(30))
+                            .ignoring(StaleElementReferenceException.class)
+                            .until(d -> d.findElements(Mailpit.selectorMensaje(email))
+                                    .stream().anyMatch(e -> e.isDisplayed()));
+                    encontrado = true;
+                } catch (TimeoutException sinMensaje) {
+                    // Ausencia real en esta consulta; el siguiente intento actualiza la UI.
+                }
+            }
+            if (!encontrado) {
+                if (obligatorio) throw new AssertionError(
+                        "Mailpit no mostró el correo de verificación de " + email
+                        + " tras dos búsquedas de 30 segundos. Revisar el envío SMTP y la bandeja local.");
+                return;
+            }
+            actor.attemptsTo(Click.on(Mailpit.mensaje(email)));
+            if (Mailpit.TEXTO.resolveFor(actor).isCurrentlyVisible()) actor.attemptsTo(Click.on(Mailpit.TEXTO));
             actor.attemptsTo(WaitUntil.the(Mailpit.ENLACE, isVisible()).forNoMoreThan(15).seconds());
             String query = URI.create(Mailpit.ENLACE.resolveFor(actor).getAttribute("href")).getRawQuery();
             String token = Arrays.stream(query.split("&")).filter(p -> p.startsWith("token="))
                     .map(p -> URLDecoder.decode(p.substring(6), StandardCharsets.UTF_8))
                     .findFirst().orElseThrow(() -> new IllegalStateException("Correo sin enlace de verificación"));
             actor.remember(TOKEN, token);
+            actor.remember(ENCONTRADO, true);
         } finally {
             driver.close();
             driver.switchTo().window(original);

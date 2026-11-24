@@ -24,7 +24,7 @@ public final class FlujoReservaWeb {
         return Task.where("{0} crea y verifica un cliente independiente", actor -> {
             CuentaPrueba cuenta = new CuentaPrueba("CLIENTE");
             if (adicional) datos.otroCliente = cuenta; else datos.cliente = cuenta;
-            actor.attemptsTo(RegistrarCuentaWeb.con(cuenta), VerificarCuentaWeb.de(cuenta), sesion(datos, cuenta));
+            actor.attemptsTo(RegistrarCuentaWeb.con(cuenta), VerificarCuentaWeb.paraPrepararCuenta(cuenta), sesion(datos, cuenta));
         });
     }
     public static Performable reservar(DatosEscenario datos, int servicio, String nombre) {

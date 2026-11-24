@@ -15,6 +15,8 @@ public final class ReservaYa {
     public static final Target CUENTA_VERIFICADA = xpath("confirmación de verificación", "//*[@role='status']//p[normalize-space()='Cuenta verificada']");
     public static final Target ALERTA = css("error presentado al usuario", "main [role='alert']");
     public static final Target CREAR_CUENTA = xpath("crear cuenta", "//form//button[@type='submit' and normalize-space()='Crear cuenta']");
+    public static final Target REENVIAR_VERIFICACION = xpath("reenviar verificación", "//button[normalize-space()='Reenviar verificación']");
+    public static final Target RESPUESTA_REENVIO = css("respuesta de reenvío", "section[aria-labelledby='titulo-reenvio'] [role='status']");
     public static final Target INGRESAR = xpath("ingresar", "//form//button[@type='submit' and normalize-space()='Ingresar']");
     public static final Target SELECTOR_SERVICIO = css("servicio de la agenda", "section[aria-labelledby='titulo-agenda'] select");
     public static final Target CREAR_BLOQUES = xpath("crear bloques", "//button[@type='submit' and normalize-space()='Crear bloques']");

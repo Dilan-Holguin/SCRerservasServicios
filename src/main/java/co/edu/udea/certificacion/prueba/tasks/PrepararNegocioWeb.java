@@ -14,7 +14,7 @@ public final class PrepararNegocioWeb {
         return Task.where("{0} prepara un negocio independiente mediante los formularios", actor -> {
             datos.fechaDentroDe(dias);
             datos.proveedor = new CuentaPrueba("PROVEEDOR");
-            actor.attemptsTo(RegistrarCuentaWeb.con(datos.proveedor), VerificarCuentaWeb.de(datos.proveedor),
+            actor.attemptsTo(RegistrarCuentaWeb.con(datos.proveedor), VerificarCuentaWeb.paraPrepararCuenta(datos.proveedor),
                     IniciarSesionWeb.con(datos.proveedor.email, datos.proveedor.clave),
                     WaitUntil.the(ReservaYa.panel("PROVEEDOR"), isVisible()).forNoMoreThan(15).seconds(),
                     WaitUntil.the(ReservaYa.fichaServicio(datos.proveedor.servicio), isVisible()).forNoMoreThan(15).seconds());
@@ -25,7 +25,7 @@ public final class PrepararNegocioWeb {
             datos.rolActual = "PROVEEDOR";
             if (cliente) {
                 datos.cliente = new CuentaPrueba("CLIENTE");
-                actor.attemptsTo(RegistrarCuentaWeb.con(datos.cliente), VerificarCuentaWeb.de(datos.cliente),
+                actor.attemptsTo(RegistrarCuentaWeb.con(datos.cliente), VerificarCuentaWeb.paraPrepararCuenta(datos.cliente),
                         IniciarSesionWeb.con(datos.cliente.email, datos.cliente.clave),
                         WaitUntil.the(ReservaYa.panel("CLIENTE"), isVisible()).forNoMoreThan(15).seconds());
                 datos.cuenta = datos.cliente;

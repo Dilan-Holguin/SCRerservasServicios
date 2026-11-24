@@ -34,6 +34,11 @@ public final class ControlesVisibles {
                     && autor.contains(nombre) && autor.contains(rol) && Instant.parse(fecha) != null;
         });
     }
+    public static Question<Boolean> fechasDelRango(String desde, String hasta) {
+        return Question.about("fechas visibles del rango de 32 días").answeredBy(actor ->
+                desde.equals(FlujosUi.DESDE.resolveFor(actor).getDomProperty("value"))
+                && hasta.equals(FlujosUi.HASTA.resolveFor(actor).getDomProperty("value")));
+    }
     public static Question<String> url() {
         return Question.about("dirección de la página").answeredBy(actor -> BrowseTheWeb.as(actor).getDriver().getCurrentUrl());
     }

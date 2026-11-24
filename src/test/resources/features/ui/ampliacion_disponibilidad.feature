@@ -17,7 +17,7 @@ Feature: Disponibilidad y reglas adicionales de reserva desde la UI
   Scenario: Rechazar consultas de mas de treinta y un dias
     Given un cliente web y un turno disponible dentro de 10 dias
     When amplia la consulta a 32 dias inclusivos desde el control de fechas
-    Then la ficha informa que el rango maximo es de treinta y un dias
+    Then la ficha rechaza el rango excedido y muestra el limite en la ayuda
 
   @E2E-043 @CA-UI-44 @TC-028 @negativo
   Scenario: No ofrecer horarios fuera de la agenda
