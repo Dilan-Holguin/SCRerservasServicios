@@ -1,85 +1,179 @@
 # ReservaYa: automatización E2E de UI
 
-Proyecto generado con el scaffolding `io.github.jumosqu12.screenplayarchitecture:2.0.1`, organizado con Screenplay, Java, Serenity BDD, Cucumber y Selenium.
+Este repositorio contiene las pruebas de ReservaYa realizadas desde el navegador. Los escenarios recorren los formularios y paneles del frontend, que consume el backend real. La preparación de cuentas, servicios, agendas y reservas también pasa por la interfaz; la suite no contiene pruebas REST ni prepara datos mediante SQL o sesiones inyectadas.
 
-Hay **59 escenarios escritos**: 11 del avance inicial y 48 de ampliación. El grupo normal selecciona 58; el correo de cancelación está marcado como contrato pendiente del producto.
+El proyecto se generó con el scaffolding `io.github.jumosqu12.screenplayarchitecture:2.0.1`. Sobre esa estructura se implementaron los comportamientos con Screenplay, Java, Serenity BDD, Cucumber y Selenium WebDriver.
 
-**Estado de validación (24 de noviembre de 2026):** los 11 escenarios originales están aprobados según la ejecución reportada por el usuario, incluidos los cinco casos de reservas/cancelaciones después de corregir el selector `#0`. El usuario ejecutó los 47 casos seleccionables de la ampliación: 45 aprobados y 2 fallidos (E2E-042 y E2E-056). Se ajustó el código y falta repetir esos dos. La compilación correcta no equivale a escenarios aprobados.
+**Última validación: 24 de noviembre de 2026.** Se ejecutaron y aprobaron los **58 escenarios de la suite UI normal**, incluidos los ajustes de E2E-042 y E2E-056. Hay **59 escenarios escritos**: 11 del avance inicial y 48 de ampliación. E2E-052 está marcado como `@pendiente_producto` y queda fuera de esos 58 porque espera un correo de cancelación que la aplicación todavía no envía.
+
+La evidencia está en el [reporte de Serenity exportado a PDF](docs/evidencias/Reporte_Serenity_2026-11-24.pdf). El resultado corresponde a esos escenarios y a esa ejecución local; no representa cobertura total del producto.
+
+## Herramientas y entorno
+
+| Herramienta | Función en el proyecto |
+|---|---|
+| Java | Implementar tareas, interacciones, preguntas y pasos. `build.gradle` configura compatibilidad de código con Java 17; para el entorno local se recomienda JDK 21. |
+| Gradle | Resolver dependencias, compilar, ejecutar el runner y generar el reporte. Debe estar disponible en `PATH`. |
+| Serenity BDD 4.1.0 | Integrar Screenplay, administrar WebDriver y registrar resultados y evidencias. |
+| Cucumber | Vincular los escenarios Gherkin con las definiciones de pasos Java. |
+| JUnit 4.13.2 | Ejecutar `Runner` con `CucumberWithSerenity`. |
+| Selenium y Chrome | Navegar por ReservaYa y por la interfaz web de Mailpit. |
+| Mailpit | Recibir y consultar los correos del entorno local. |
+
+Antes de ejecutar, inicia ReservaYa siguiendo el README de la aplicación:
+
+| Servicio | Dirección local |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:8082 |
+| Mailpit web | http://127.0.0.1:8025 |
+| PostgreSQL y servidor de correo | Disponibles según el Docker Compose del producto. |
+
+El navegador necesita acceso al frontend y a Mailpit. Aunque no se hacen solicitudes REST desde el código de pruebas, el backend, la base de datos y el correo deben estar funcionando para completar los recorridos.
+
+## Cómo se construyó la automatización
+
+Los flujos se expresaron en archivos `.feature`, con precondiciones, acciones y resultados observables. Se priorizaron registro e ingreso, publicación de agendas, disponibilidad, reservas y cancelaciones. Después se ampliaron las validaciones de formularios, edición y eliminación de agendas, restricciones de fechas y recursos compartidos.
+
+Cada paso de Gherkin se conecta con una definición Java. Esta delega las acciones de negocio a tareas reutilizables y comprueba las respuestas mediante preguntas de Screenplay o lecturas de elementos visibles. Así, varios escenarios pueden reutilizar el registro de una cuenta o la creación de una agenda sin copiar toda la navegación.
+
+### Organización con Screenplay
+
+El paquete Java principal es `co.edu.udea.certificacion.prueba`. En la tabla, `...` representa ese paquete dentro de cada árbol Java.
+
+| Ubicación | Responsabilidad y ejemplos |
+|---|---|
+| `src/test/resources/features/ui` | Escenarios Gherkin con etiquetas de selección y trazabilidad. |
+| `src/test/java/.../runners/Runner.java` | Entrada JUnit que descubre las features e integra Cucumber con Serenity. |
+| `src/test/java/.../stepdefinitions` | Traducción de pasos a acciones y comprobaciones, separada por registro, agenda, reservas y recursos. |
+| `src/main/java/.../tasks` | Acciones como `RegistrarCuentaWeb`, `CrearAgendaWeb`, `ReservarTurnoWeb` y `CancelarReservaWeb`, además de preparación y limpieza. |
+| `src/main/java/.../interactions` | Operaciones concretas sobre controles y correo, como `FijarFecha`, `FijarHora` y `LeerCorreoVerificacion`. |
+| `src/main/java/.../questions` | Lectura del estado observable, como `InformacionVisible`, `EstadoReservaEnPantalla` y `DatosEnPantalla`. |
+| `src/main/java/.../userinterfaces` | Localizadores `Target` de ReservaYa y Mailpit, incluidos elementos parametrizados por servicio o reserva. |
+| `src/main/java/.../models` | Datos propios del escenario: cuentas, fechas, servicios y reservas creadas. |
+| `src/main/java/.../utils` | Configuración de las direcciones web. |
+| `src/test/java/.../support` | Acceso al actor y sus datos, y generación del reporte HTML. |
+
+Las clases de plantilla que conserva el scaffolding no implican integraciones adicionales. Por ejemplo, la suite no usa el paquete `integrations` para consumir una API. El scaffolding proporciona la estructura inicial; los casos nuevos se agregan sin regenerar el proyecto.
+
+Antes de cada escenario UI, un hook configura `OnStage` con `OnlineCast`, crea al actor **Usuario de reservas** y le asigna `BrowseTheWeb` con el driver de Serenity. También guarda una instancia nueva de `DatosEscenario` en la memoria del actor. Las tareas compuestas con `Task.where` forman parte de esta implementación de Screenplay.
+
+Por ejemplo, al reservar un turno, `PrepararNegocioWeb` registra las cuentas necesarias y crea el servicio y la agenda desde sus formularios. Luego `ReservarTurnoWeb` abre la ficha pública y elige el turno. La confirmación se comprueba en el historial; `DatosEnPantalla` obtiene el identificador que muestra la reserva para las consultas posteriores. El identificador se lee de la interfaz y no se supone un valor fijo.
+
+### Localizadores y sincronización
+
+Los `Target` se concentran en `ReservaYa`, `FlujosUi` y `Mailpit`. Se emplea XPath para relacionar etiquetas, textos y contenedores, y localizar la tarjeta de una reserva o un servicio concreto. Esto permite corregir un selector en su definición compartida.
+
+La espera implícita de WebDriver está desactivada. Las tareas usan `WaitUntil` con condiciones como visibilidad o posibilidad de hacer clic, habitualmente con un límite de 15 segundos. Así se espera una condición de la pantalla antes de continuar. Chrome se configura con una ventana de 1440 × 1000 y lenguaje `es-CO`.
+
+Para los controles nativos de fecha y hora se utilizan interacciones específicas. En `FijarFecha`, Selenium ejecuta JavaScript sobre el campo de la página para asignar el valor y emitir los eventos `input` y `change` que procesa React. Esta operación modifica el control del frontend y no crea datos directamente en el servidor.
+
+### Datos, aislamiento y limpieza
+
+Cada escenario genera cuentas, nombres de servicios y recursos con UUID para evitar colisiones con ejecuciones anteriores. Las fechas de negocio son relativas al día actual en `America/Bogota`. El cambio entre cliente y proveedor se realiza mediante cierre de sesión e ingreso por los formularios.
+
+La ejecución se mantiene en serie con `maxParallelForks = 1` y un heap de 256 MB para el proceso de pruebas. Esto limita el consumo de memoria; el aislamiento entre casos depende de sus datos propios y su preparación independiente.
+
+Al terminar, el hook `@After` intenta cancelar las reservas creadas e inactivar los servicios del escenario mediante la UI. Después cierra los drivers y el escenario de Screenplay. Si la limpieza falla tras un escenario exitoso, el error se propaga; si el escenario ya había fallado, la incidencia se registra para conservar el fallo original.
+
+Esta limpieza tiene el alcance que permite el producto: la UI no ofrece eliminación de cuentas, correos ni recursos. Por eso pueden quedar registros de prueba en el entorno local. No se necesita que un escenario anterior haya pasado para preparar el siguiente.
+
+### Verificación de correos
+
+Mailpit se consulta en una pestaña auxiliar y se filtra por el destinatario generado para el escenario. Para verificar la cuenta se conserva el token recibido y se abre la página `/verificacion` del frontend, porque el enlace del correo local apunta al servidor.
+
+La búsqueda de correo se actualiza una vez si el mensaje no aparece en 30 segundos. Solo para preparar cuentas de los escenarios de negocio se permite un reenvío desde la UI si las dos búsquedas no encuentran el mensaje. Sigue siendo obligatorio recibir el correo y verificarlo. Los escenarios que comprueban el correo original del registro no usan ese reenvío automático.
+
+### Qué se comprueba
+
+Las aserciones revisan mensajes, controles, estados y datos visibles. En reservas y cancelaciones también se recarga el historial y se consulta la disponibilidad para comprobar que el cambio se conserva y el cupo se libera. Los casos de agenda vuelven a cargar la sección para revisar la persistencia.
+
+Estos recorridos ejercitan la integración entre frontend y backend desde la experiencia del usuario. Su alcance está limitado a lo observable en esos flujos: no comprueban por separado todos los contratos HTTP, la seguridad o la concurrencia del servidor.
+
+## Etiquetas y trazabilidad
+
+| Etiqueta | Uso |
+|---|---|
+| `@ui` | Identifica la suite de navegador. |
+| `@E2E-007` | Identificador único de un escenario automatizado. |
+| `@HU-07` | Historia de usuario cubierta. Puede haber varias HU asociadas. |
+| `@CP-07`, `@TC-025-HP` | Referencias de CP y TC de los documentos fuente. |
+| `@TC-UI-...`, `@CA-UI-...` | Identificadores locales para casos adicionales y comprobaciones de aceptación. |
+| `@base11`, `@ampliacion` | Separan el avance inicial de la ampliación. |
+| `@critica`, `@smoke` | Seleccionan los grupos de prioridad definidos en las features. |
+| `@positivo`, `@negativo` | Describen el tipo de escenario. |
+| `@pendiente_producto` | Separa el contrato de correo pendiente de implementación. |
+
+Por ejemplo, E2E-007 relaciona la creación de una reserva con HU-07, CP-07, TC-025-HP y CA-UI-08. Los códigos CA-UI y TC-UI son locales, no una numeración oficial del profesor. Las precondiciones reutilizadas para crear cuentas o agendas no se cuentan como nuevos casos aprobados de esas HU.
+
+La [matriz de trazabilidad](docs/trazabilidad-ui.md) detalla las asociaciones. Los archivos de `docs/gherkin-ui-original` son referencia histórica y están fuera del runner.
 
 ## Ejecutar en local
 
-Inicia ReservaYa según su README: frontend en http://localhost:5173, backend en http://localhost:8082, PostgreSQL y Mailpit con Docker. La UI de Mailpit debe estar disponible en http://127.0.0.1:8025. Se requiere JDK 21, Gradle en PATH y Chrome.
-
-La automatización usa el frontend y Mailpit web. Los datos se preparan mediante formularios, sin clientes REST, SQL ni sesiones inyectadas.
-
-Desde PowerShell en este repositorio:
+Desde PowerShell en este repositorio, con los servicios del producto iniciados:
 
 ```powershell
+# Toda la UI ejecutable: 58 escenarios
+.\ejecutar-pruebas.ps1 -Grupo ui
+
+# La misma suite sin mostrar la ventana de Chrome
+.\ejecutar-pruebas.ps1 -Grupo ui -SinVentana
+
 # Los 11 escenarios originales
-.\ejecutar-pruebas.ps1 -Grupo base11 
+.\ejecutar-pruebas.ps1 -Grupo base11
 
-# Solo la ampliación ejecutable (47 casos)
-.\ejecutar-pruebas.ps1 -Grupo nuevas 
+# Solo la ampliación ejecutable: 47 escenarios
+.\ejecutar-pruebas.ps1 -Grupo nuevas
 
-# Toda la UI ejecutable (58 casos)
-.\ejecutar-pruebas.ps1 -Grupo ui 
-
-# Solo el contrato de correo pendiente del producto
-.\ejecutar-pruebas.ps1 -Grupo pendientes -SinVentana
+# Los cinco escenarios smoke
+.\ejecutar-pruebas.ps1 -Grupo smoke -SinVentana
 ```
 
-`criticas` y `todas` también excluyen `@pendiente_producto`; `smoke` selecciona los cinco casos base marcados así. `validar` hace dry-run de los 59 y comprueba las asociaciones de Gherkin; no valida comportamiento.
+El script comprueba `JAVA_HOME`; si no apunta a un JDK válido, intenta localizar un JDK 21 de Eclipse Adoptium. Después llama a Gradle con el filtro del grupo. `criticas` es el grupo predeterminado; `ui`, `criticas` y `todas` excluyen `@pendiente_producto`.
 
-Ejecutar por HU o escenario:
+Para seleccionar una HU o un escenario directamente:
 
 ```powershell
 gradle --no-daemon test '-Dcucumber.filter.tags=@ui and @HU-05 and not @pendiente_producto' '-Dheadless.mode=true'
 gradle --no-daemon test '-Dcucumber.filter.tags=@E2E-032' '-Dheadless.mode=true'
 ```
 
-Configurar URLs:
+Para revisar las asociaciones entre Gherkin y pasos sin realizar los recorridos, o ejecutar por separado el contrato pendiente:
+
+```powershell
+# Dry-run de los 59 escenarios; no valida comportamiento
+.\ejecutar-pruebas.ps1 -Grupo validar
+
+# Fuera de la suite normal: depende de una función pendiente del producto
+.\ejecutar-pruebas.ps1 -Grupo pendientes -SinVentana
+```
+
+### Configurar las direcciones
 
 ```powershell
 $env:RESERVAYA_WEB_URL = 'http://localhost:5173'
 $env:MAILPIT_WEB_URL = 'http://127.0.0.1:8025'
 ```
 
-También se admiten `reservaya.web.url` y `mailpit.web.url` como propiedades Java. Las pruebas van en serie para limitar memoria y preservar el aislamiento.
+También se admiten las propiedades Java `reservaya.web.url` y `mailpit.web.url`. La prioridad es propiedad Java, variable de entorno y dirección local predeterminada. La URL del backend se configura en el producto; la automatización accede a él a través del frontend.
 
-## Screenplay
+## Reportes y evidencia
 
-- `features/ui`: escenarios, etiquetas de HU, CP, TC y criterios locales.
-- `stepdefinitions`: pasos separados por registro/autenticación, agenda, reservas y recursos.
-- Actor `Usuario de reservas`, creado con `OnStage` y `OnlineCast`, con habilidad `BrowseTheWeb`.
-- `tasks`: acciones de negocio, precondiciones reutilizables y limpieza de datos propios.
-- `interactions`: contraseña, controles de hora/fecha y consulta de correo web.
-- `questions`: comprobaciones y lectura de identificadores visibles.
-- `userinterfaces`: Targets de ReservaYa y Mailpit.
-- `models`: cuentas con UUID y estado independiente por escenario.
-- `utils`: configuración de las URLs web.
+La tarea `test` ejecuta `Runner`, escribe el JSON de Cucumber y registra los resultados de Serenity. Antes de la ejecución limpia el directorio de resultados de Serenity. Al finalizar, `reporteSerenity` usa `HtmlAggregateStoryReporter`, mediante `GenerarReporte`, para construir el HTML con la misma versión de Serenity que ejecuta las pruebas. La configuración guarda capturas de pantalla ante fallos.
 
-Las Tasks compuestas con `Task.where` también son Screenplay. El scaffolding prepara la estructura y Screenplay organiza los comportamientos; no hay que regenerar el proyecto para añadir casos.
+| Resultado | Ubicación |
+|---|---|
+| Reporte HTML de Serenity | `build/reports/serenity/index.html` |
+| Reporte de pruebas de Gradle/JUnit | `build/reports/tests/test/index.html` |
+| Resultados Cucumber | `build/reports/cucumber/resultados.json` |
+| Evidencia estática de la ejecución aprobada | [Reporte PDF del 24 de noviembre de 2026](docs/evidencias/Reporte_Serenity_2026-11-24.pdf) |
 
-## Datos y correo
+El PDF conserva el resumen y la lista de los 58 escenarios aprobados. Es una exportación documental; el detalle navegable de pasos se consulta en el HTML local. Una ejecución posterior no actualiza automáticamente este PDF.
 
-Cada escenario tiene cuentas, servicios y recursos con UUID. Las fechas son relativas a Bogotá. Se cambia de rol con el menú de cerrar sesión y el formulario de ingreso.
+El [registro de validación](docs/estado-validacion.md) conserva el seguimiento previo de ajustes. Para el resultado consolidado del 24 de noviembre, la referencia es la evidencia enlazada en este README.
 
-Mailpit se consulta en una pestaña auxiliar filtrando por destinatario. Para verificar la cuenta se conserva el token recibido y se abre la página `/verificacion` del frontend, porque el enlace del correo local apunta al servidor.
+## Archivos que se versionan
 
-La búsqueda de correo se actualiza una vez si el mensaje no aparece en 30 segundos. Solo para preparar cuentas de los escenarios de negocio se permite un reenvío por la UI si las dos búsquedas no encuentran el mensaje; sigue siendo obligatorio recibir el correo y verificarlo. Los casos que prueban el correo original del registro no usan ese reenvío automático.
+Se versionan el código, las features, la configuración compartida y la documentación, incluido el PDF en `docs/evidencias/`. Los directorios generados `build/`, `bin/`, `target/`, las cachés, los logs y `.env` están ignorados. No deben agregarse credenciales personales ni todo el reporte HTML generado al repositorio.
 
-Los casos de cancelación recargan el historial y consultan disponibilidad en la ficha. Los de agenda verifican la persistencia al cargar de nuevo la sección. La limpieza cancela las reservas propias y deja inactivos los servicios creados. La aplicación no dispone de UI para eliminar cuentas, correos ni recursos.
-
-El caso `@E2E-052 @pendiente_producto` espera una notificación por correo de cancelación que todavía no envía la aplicación. Se mantiene separado y documentado; no es un caso aprobado ni una comprobación sustituida por un éxito artificial.
-
-## Resultados, trazabilidad y GitHub
-
-- Serenity: `build/reports/serenity/index.html`
-- JUnit: `build/reports/tests/test/index.html`
-- Cucumber: `build/reports/cucumber/resultados.json`
-- [Matriz de trazabilidad](docs/trazabilidad-ui.md)
-- [Estado de validación](docs/estado-validacion.md)
-
-Los archivos de `docs/gherkin-ui-original` son referencia histórica, fuera del runner. Los TC-UI y CA-UI son identificadores locales; no son numeración oficial del profesor.
-
-La ampliación tiene 45 casos aprobados según el último reporte del usuario y dos ajustes pendientes de repetición. Un commit de escenarios implementados no equivale a una validación aprobada. Los 11 casos base fueron reportados como aprobados por el usuario y ese avance puede subirse indicando su alcance; la ampliación debe identificar por separado su estado de validación. No subas reportes, cachés, `.env` ni credenciales personales: los archivos generados y `.env` están ignorados.
+Para ampliar la suite, agrega el escenario y sus etiquetas, reutiliza las tareas existentes o incorpora las nuevas acciones y preguntas en su capa correspondiente, actualiza la trazabilidad y valida el comportamiento con la aplicación local. La compilación o el dry-run por sí solos no equivalen a una prueba aprobada.
