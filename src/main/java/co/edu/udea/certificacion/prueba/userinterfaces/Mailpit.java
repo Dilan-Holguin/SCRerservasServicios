@@ -11,6 +11,7 @@ public final class Mailpit {
             .located(By.xpath("//*[@role='tab' and normalize-space()='Text']"));
     public static final Target ENLACE = Target.the("enlace de verificación del correo")
             .located(By.cssSelector("#nav-plain-text a[href*='token=']"));
+    public static final By CUERPO = By.cssSelector("#nav-plain-text");
     public static By selectorMensaje(String email) {
         return By.xpath("//a[starts-with(@href,'/view/') and contains(.,'" + email + "')]");
     }

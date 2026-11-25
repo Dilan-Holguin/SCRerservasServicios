@@ -1,21 +1,28 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.interactions.EscribirClave;
+import co.edu.udea.certificacion.prueba.interactions.AutenticarEnElFormulario;
 import co.edu.udea.certificacion.prueba.models.CuentaPrueba;
-import co.edu.udea.certificacion.prueba.userinterfaces.ReservaYa;
-import net.serenitybdd.screenplay.Performable;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.actions.*;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
+import net.serenitybdd.screenplay.Tasks;
 
 /** Conserva el destino y el turno que la navegación de la UI guardó antes del ingreso. */
-public final class IngresarConDestinoWeb {
-    private IngresarConDestinoWeb() { }
-    public static Performable con(CuentaPrueba cuenta) {
-        return Task.where("{0} ingresa sin perder el turno pendiente",
-                WaitUntil.the(ReservaYa.EMAIL, isVisible()).forNoMoreThan(15).seconds(),
-                Enter.theValue(cuenta.email).into(ReservaYa.EMAIL), EscribirClave.sinExponerla(cuenta.clave),
-                Click.on(ReservaYa.INGRESAR));
+public class IngresarConDestinoWeb implements Task {
+
+    private final CuentaPrueba cuenta;
+
+    public IngresarConDestinoWeb(CuentaPrueba cuenta) {
+        this.cuenta = cuenta;
+    }
+
+    @Override
+    @Step("{0} ingresa sin perder el turno pendiente")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(AutenticarEnElFormulario.con(cuenta.email, cuenta.clave));
+    }
+
+    public static IngresarConDestinoWeb con(CuentaPrueba cuenta) {
+        return Tasks.instrumented(IngresarConDestinoWeb.class, cuenta);
     }
 }

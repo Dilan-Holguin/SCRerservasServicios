@@ -50,20 +50,20 @@ Los documentos fuente no asignan códigos a los criterios de aceptación. Estos 
 
 ## Ampliación escrita a petición del equipo
 
-Se añadieron **48 escenarios**, con E2E-012 a E2E-059. Hay **59 escenarios en total: 58 seleccionados por el grupo UI normal y un contrato pendiente del producto**. El usuario ejecutó los 47 casos seleccionables de la ampliación: 45 aprobados y 2 fallidos. E2E-042 y E2E-056 tienen ajustes pendientes de repetición; ver el estado de validación. El agente no ejecutó escenarios.
+Se añadieron **48 escenarios**, con E2E-012 a E2E-059. Hay **59 escenarios en total: 58 seleccionados por el grupo UI normal y un contrato pendiente del producto**. La suite refactorizada se ejecutó el 25 de noviembre de 2026 contra la aplicación en el commit `27ac566`: **58/58 escenarios aprobados, 218/218 pasos y 0 fallos**, incluidos E2E-042 y E2E-056. El detalle está en el estado de validación.
 
 Los CP y TC numéricos son referencias a los casos del plan original; `TC-UI-...`, `CP-UI-15`, `E2E-...` y `CA-UI-...` son identificadores locales. La numeración local no sustituye una aprobación del profesor.
 
 | Área añadida | Casos | Estado |
 |---|---:|---|
-| Validaciones adicionales del registro web | 10 | Ejecución reportada por el usuario; ver estado de validación |
-| Seguridad y verificacion de cuenta desde la UI | 6 | Ejecución reportada por el usuario; ver estado de validación |
-| Limites y multiples dias de agenda desde la UI | 4 | Ejecución reportada por el usuario; ver estado de validación |
-| Editar agenda respetando las reservas existentes | 5 | Ejecución reportada por el usuario; ver estado de validación |
-| Eliminar agenda respetando las reservas existentes | 3 | Ejecución reportada por el usuario; ver estado de validación |
-| Disponibilidad y reglas adicionales de reserva desde la UI | 8 | Ejecución reportada por el usuario; ver estado de validación |
-| Trazabilidad y decisiones de cancelacion desde la UI | 4 | Ejecución reportada por el usuario; ver estado de validación |
-| Gestion de recursos y disponibilidad compartida desde la UI | 7 | Ejecución reportada por el usuario; ver estado de validación |
+| Validaciones adicionales del registro web | 10 | Aprobado en la corrida post-refactor |
+| Seguridad y verificacion de cuenta desde la UI | 6 | Aprobado en la corrida post-refactor |
+| Limites y multiples dias de agenda desde la UI | 4 | Aprobado en la corrida post-refactor |
+| Editar agenda respetando las reservas existentes | 5 | Aprobado en la corrida post-refactor |
+| Eliminar agenda respetando las reservas existentes | 3 | Aprobado en la corrida post-refactor |
+| Disponibilidad y reglas adicionales de reserva desde la UI | 8 | Aprobado en la corrida post-refactor |
+| Trazabilidad y decisiones de cancelacion desde la UI | 4 | Aprobado en la corrida post-refactor |
+| Gestion de recursos y disponibilidad compartida desde la UI | 7 | Aprobado en la corrida post-refactor |
 | Contrato de notificacion de cancelacion pendiente del producto | 1 | Contrato pendiente del producto |
 
 | Escenario | Comportamiento | HU | CP | TC de referencia o local | Criterio UI local |

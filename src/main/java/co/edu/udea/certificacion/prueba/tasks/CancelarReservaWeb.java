@@ -1,19 +1,31 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.userinterfaces.ReservaYa;
-import net.serenitybdd.screenplay.Performable;
+import co.edu.udea.certificacion.prueba.interactions.PulsarCancelarReserva;
+import co.edu.udea.certificacion.prueba.interactions.ResponderLaCancelacion;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.actions.Click;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isClickable;
+import net.serenitybdd.screenplay.Tasks;
 
-public final class CancelarReservaWeb {
-    private CancelarReservaWeb() { }
-    public static Performable conConfirmacion(int id, boolean confirmar) {
-        return Task.where("{0} solicita cancelar la reserva " + id + (confirmar ? " y confirma" : " y decide conservarla"),
-                WaitUntil.the(ReservaYa.cancelar(id), isClickable()).forNoMoreThan(15).seconds(),
-                Click.on(ReservaYa.cancelar(id)),
-                WaitUntil.the(ReservaYa.CONFIRMAR_CANCELACION, isClickable()).forNoMoreThan(10).seconds(),
-                Click.on(confirmar ? ReservaYa.CONFIRMAR_CANCELACION : ReservaYa.CONSERVAR_RESERVA));
+public class CancelarReservaWeb implements Task {
+
+    private final int reserva;
+    private final boolean confirmar;
+
+    public CancelarReservaWeb(int reserva, boolean confirmar) {
+        this.reserva = reserva;
+        this.confirmar = confirmar;
+    }
+
+    @Override
+    @Step("{0} solicita cancelar su reserva")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+                PulsarCancelarReserva.numero(reserva),
+                ResponderLaCancelacion.confirmando(confirmar));
+    }
+
+    public static CancelarReservaWeb conConfirmacion(int reserva, boolean confirmar) {
+        return Tasks.instrumented(CancelarReservaWeb.class, reserva, confirmar);
     }
 }

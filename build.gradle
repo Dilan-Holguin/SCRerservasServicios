@@ -54,7 +54,8 @@ tasks.named('test') {
     systemProperty 'cucumber.filter.tags', System.getProperty('cucumber.filter.tags',
             System.getenv('CUCUMBER_FILTER_TAGS') ?: '@ui and not @pendiente_producto')
     ['reservaya.web.url', 'mailpit.web.url',
-     'cucumber.filter.tags', 'cucumber.execution.dry-run', 'headless.mode', 'webdriver.chrome.driver'].each { key ->
+     'cucumber.filter.tags', 'cucumber.execution.dry-run', 'headless.mode', 'webdriver.chrome.driver',
+     'webdriver.wait.for.timeout', 'mailpit.wait.timeout', 'demo.pause.milliseconds'].each { key ->
         if (System.getProperty(key) != null) systemProperty key, System.getProperty(key)
     }
     testLogging {

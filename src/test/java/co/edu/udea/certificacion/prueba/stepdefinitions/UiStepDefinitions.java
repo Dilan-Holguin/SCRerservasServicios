@@ -1,5 +1,6 @@
 package co.edu.udea.certificacion.prueba.stepdefinitions;
 
+import co.edu.udea.certificacion.prueba.utils.Esperar;
 import co.edu.udea.certificacion.prueba.models.*;
 import co.edu.udea.certificacion.prueba.questions.*;
 import co.edu.udea.certificacion.prueba.tasks.*;
@@ -12,10 +13,8 @@ import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.actors.OnStage;
 import net.serenitybdd.screenplay.actors.OnlineCast;
 import net.serenitybdd.screenplay.questions.Text;
-import net.serenitybdd.screenplay.waits.WaitUntil;
 
 import static net.serenitybdd.screenplay.GivenWhenThen.seeThat;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.*;
 import static org.hamcrest.Matchers.*;
 
 /** Traduce Gherkin a acciones y preguntas Screenplay; las precondiciones también usan la UI. */
@@ -70,7 +69,7 @@ public class UiStepDefinitions {
 
     @Then("llega al panel web de {string}")
     public void panel(String rol) {
-        actor.attemptsTo(WaitUntil.the(ReservaYa.panel(rol), isVisible()).forNoMoreThan(15).seconds());
+        actor.attemptsTo(Esperar.visible(ReservaYa.panel(rol)));
         actor.should(seeThat(Text.of(ReservaYa.panel(rol)), equalTo(rol.equals("CLIENTE") ? "Mis reservas" : "Mi negocio")));
     }
 
@@ -88,7 +87,7 @@ public class UiStepDefinitions {
 
     @Then("ve un aviso de ingreso {string} y permanece en el formulario")
     public void errorVisible(String tipo) {
-        actor.attemptsTo(WaitUntil.the(ReservaYa.ALERTA, isVisible()).forNoMoreThan(15).seconds());
+        actor.attemptsTo(Esperar.visible(ReservaYa.ALERTA));
         actor.should(seeThat(Text.of(ReservaYa.ALERTA),
                 containsString(tipo.equals("sin verificar") ? "Abre el enlace" : "Revisa el correo")),
                 seeThat(InformacionVisible.formularioIngreso(), is(true)));
@@ -106,9 +105,9 @@ public class UiStepDefinitions {
 
     @Then("ve el bloque publicado y ocho turnos disponibles en la ficha web")
     public void verificarAgenda() {
-        actor.attemptsTo(WaitUntil.the(ReservaYa.BLOQUE_CREADO, isVisible()).forNoMoreThan(15).seconds());
+        actor.attemptsTo(Esperar.visible(ReservaYa.BLOQUE_CREADO));
         actor.should(seeThat(InformacionVisible.agendaOriginal(), is(true)));
-        actor.attemptsTo(ConsultarReservaWeb.disponibilidad(datos));
+        actor.attemptsTo(ConsultarDisponibilidadWeb.de(datos));
         actor.should(seeThat(InformacionVisible.cantidadTurnos(), equalTo(8)));
     }
 
@@ -119,10 +118,10 @@ public class UiStepDefinitions {
 
     @Then("ve el error de agenda y se conserva el bloque original")
     public void verificarSolapamiento() {
-        actor.attemptsTo(WaitUntil.the(ReservaYa.ALERTA, isVisible()).forNoMoreThan(15).seconds());
+        actor.attemptsTo(Esperar.visible(ReservaYa.ALERTA));
         actor.should(seeThat(Text.of(ReservaYa.ALERTA), containsString("solap")),
                 seeThat(InformacionVisible.agendaOriginal(), is(true)));
-        actor.attemptsTo(ConsultarReservaWeb.disponibilidad(datos));
+        actor.attemptsTo(ConsultarDisponibilidadWeb.de(datos));
         actor.should(seeThat(InformacionVisible.cantidadTurnos(), equalTo(8)));
     }
 
@@ -136,8 +135,8 @@ public class UiStepDefinitions {
 
     @Then("ve la reserva confirmada y guardada en su historial")
     public void reservaConfirmada() {
-        actor.attemptsTo(WaitUntil.the(ReservaYa.RESERVA_CONFIRMADA, isVisible()).forNoMoreThan(15).seconds(),
-                ConsultarReservaWeb.delCliente(datos), ConsultarReservaWeb.recargando(datos));
+        actor.attemptsTo(Esperar.visible(ReservaYa.RESERVA_CONFIRMADA),
+                ConsultarReservaDelCliente.de(datos), RecargarHistorialWeb.de(datos));
         actor.should(seeThat(EstadoReservaEnPantalla.es(datos.reserva, "CONFIRMADA"), is(true)));
     }
 
@@ -150,7 +149,7 @@ public class UiStepDefinitions {
             datos.cuenta = datos.proveedor;
             ingresar();
             panel("PROVEEDOR");
-            actor.attemptsTo(ConsultarReservaWeb.recargando(datos));
+            actor.attemptsTo(RecargarHistorialWeb.de(datos));
         }
     }
 
@@ -163,22 +162,22 @@ public class UiStepDefinitions {
     @Then("la reserva web aparece {string} y persiste al recargar el historial")
     public void estadoPersistido(String estado) {
         if (estado.equals("CANCELADA")) actor.attemptsTo(
-                WaitUntil.the(ReservaYa.cancelacionConfirmada(datos.reserva), isVisible()).forNoMoreThan(15).seconds());
-        else actor.attemptsTo(WaitUntil.the(ReservaYa.DIALOGO, isNotVisible()).forNoMoreThan(15).seconds());
-        actor.attemptsTo(ConsultarReservaWeb.recargando(datos));
+                Esperar.visible(ReservaYa.cancelacionConfirmada(datos.reserva)));
+        else actor.attemptsTo(Esperar.noVisible(ReservaYa.DIALOGO));
+        actor.attemptsTo(RecargarHistorialWeb.de(datos));
         actor.should(seeThat(EstadoReservaEnPantalla.es(datos.reserva, estado), is(true)));
     }
 
     @Then("el cupo vuelve a estar disponible")
     public void cupoLiberado() {
-        actor.attemptsTo(ConsultarReservaWeb.disponibilidad(datos));
+        actor.attemptsTo(ConsultarDisponibilidadWeb.de(datos));
         actor.should(seeThat(InformacionVisible.cupos("09:00"), equalTo("1 cupo libre")));
     }
 
     @Then("la interfaz explica el plazo y no ofrece cancelar")
     public void plazo() {
         actor.should(seeThat(InformacionVisible.plazoSinCancelar(datos.reserva), is(true)));
-        actor.attemptsTo(ConsultarReservaWeb.recargando(datos));
+        actor.attemptsTo(RecargarHistorialWeb.de(datos));
         actor.should(seeThat(EstadoReservaEnPantalla.es(datos.reserva, "CONFIRMADA"), is(true)),
                 seeThat(InformacionVisible.plazoSinCancelar(datos.reserva), is(true)));
     }

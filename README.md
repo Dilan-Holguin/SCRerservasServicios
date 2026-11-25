@@ -4,16 +4,18 @@ Este repositorio contiene las pruebas de ReservaYa realizadas desde el navegador
 
 El proyecto se generó con el scaffolding `io.github.jumosqu12.screenplayarchitecture:2.0.1`. Sobre esa estructura se implementaron los comportamientos con Screenplay, Java, Serenity BDD, Cucumber y Selenium WebDriver.
 
-**Última validación: 24 de noviembre de 2026.** Se ejecutaron y aprobaron los **58 escenarios de la suite UI normal**, incluidos los ajustes de E2E-042 y E2E-056. Hay **59 escenarios escritos**: 11 del avance inicial y 48 de ampliación. E2E-052 está marcado como `@pendiente_producto` y queda fuera de esos 58 porque espera un correo de cancelación que la aplicación todavía no envía.
+**Última validación: 25 de noviembre de 2026.** Después de refactorizar las tareas, interacciones y esperas, se ejecutaron y aprobaron los **58 escenarios de la suite UI normal**. Hay **59 escenarios escritos**: 11 del avance inicial y 48 de ampliación. E2E-052 está marcado como `@pendiente_producto` y queda fuera de esos 58 porque espera un correo de cancelación que la aplicación todavía no envía.
 
-La evidencia está en el [reporte de Serenity exportado a PDF](docs/evidencias/Reporte_Serenity_2026-11-24.pdf). El resultado corresponde a esos escenarios y a esa ejecución local; no representa cobertura total del producto.
+La corrida se hizo contra la aplicación en el commit `27ac566`: 58 escenarios aprobados, 218 pasos aprobados, 0 fallos y una duración de 19 min 43 s. El reporte navegable de esa ejecución queda en `build/reports/serenity/index.html`.
+
+La evidencia PDF corresponde a la ejecución previa a la refactorización. Se conserva como registro histórico; no debe presentarse como evidencia del código actual.
 
 ## Herramientas y entorno
 
 | Herramienta | Función en el proyecto |
 |---|---|
 | Java | Implementar tareas, interacciones, preguntas y pasos. `build.gradle` configura compatibilidad de código con Java 17; para el entorno local se recomienda JDK 21. |
-| Gradle | Resolver dependencias, compilar, ejecutar el runner y generar el reporte. Debe estar disponible en `PATH`. |
+| Gradle | Resolver dependencias, compilar, ejecutar el runner y generar el reporte. El repositorio incluye `gradlew`/`gradlew.bat` y el wrapper 9.8.0. |
 | Serenity BDD 4.1.0 | Integrar Screenplay, administrar WebDriver y registrar resultados y evidencias. |
 | Cucumber | Vincular los escenarios Gherkin con las definiciones de pasos Java. |
 | JUnit 4.13.2 | Ejecutar `Runner` con `CucumberWithSerenity`. |
@@ -47,16 +49,16 @@ El paquete Java principal es `co.edu.udea.certificacion.prueba`. En la tabla, `.
 | `src/test/java/.../runners/Runner.java` | Entrada JUnit que descubre las features e integra Cucumber con Serenity. |
 | `src/test/java/.../stepdefinitions` | Traducción de pasos a acciones y comprobaciones, separada por registro, agenda, reservas y recursos. |
 | `src/main/java/.../tasks` | Acciones como `RegistrarCuentaWeb`, `CrearAgendaWeb`, `ReservarTurnoWeb` y `CancelarReservaWeb`, además de preparación y limpieza. |
-| `src/main/java/.../interactions` | Operaciones concretas sobre controles y correo, como `FijarFecha`, `FijarHora` y `LeerCorreoVerificacion`. |
+| `src/main/java/.../interactions` | Operaciones concretas sobre controles y correo, como `LlenarElFormularioDeRegistro`, `SeleccionarElTurno` y `LeerCorreoVerificacion`. |
 | `src/main/java/.../questions` | Lectura del estado observable, como `InformacionVisible`, `EstadoReservaEnPantalla` y `DatosEnPantalla`. |
 | `src/main/java/.../userinterfaces` | Localizadores `Target` de ReservaYa y Mailpit, incluidos elementos parametrizados por servicio o reserva. |
 | `src/main/java/.../models` | Datos propios del escenario: cuentas, fechas, servicios y reservas creadas. |
-| `src/main/java/.../utils` | Configuración de las direcciones web. |
+| `src/main/java/.../utils` | Direcciones web, tiempos de espera y pausa de demostración. |
 | `src/test/java/.../support` | Acceso al actor y sus datos, y generación del reporte HTML. |
 
 Las clases de plantilla que conserva el scaffolding no implican integraciones adicionales. Por ejemplo, la suite no usa el paquete `integrations` para consumir una API. El scaffolding proporciona la estructura inicial; los casos nuevos se agregan sin regenerar el proyecto.
 
-Antes de cada escenario UI, un hook configura `OnStage` con `OnlineCast`, crea al actor **Usuario de reservas** y le asigna `BrowseTheWeb` con el driver de Serenity. También guarda una instancia nueva de `DatosEscenario` en la memoria del actor. Las tareas compuestas con `Task.where` forman parte de esta implementación de Screenplay.
+Antes de cada escenario UI, un hook configura `OnStage` con `OnlineCast`, crea al actor **Usuario de reservas** y le asigna `BrowseTheWeb` con el driver de Serenity. También guarda una instancia nueva de `DatosEscenario` en la memoria del actor. Cada tarea e interacción es una clase que implementa `Task` o `Interaction` y se crea con `Tasks.instrumented`.
 
 Por ejemplo, al reservar un turno, `PrepararNegocioWeb` registra las cuentas necesarias y crea el servicio y la agenda desde sus formularios. Luego `ReservarTurnoWeb` abre la ficha pública y elige el turno. La confirmación se comprueba en el historial; `DatosEnPantalla` obtiene el identificador que muestra la reserva para las consultas posteriores. El identificador se lee de la interfaz y no se supone un valor fijo.
 
@@ -64,7 +66,17 @@ Por ejemplo, al reservar un turno, `PrepararNegocioWeb` registra las cuentas nec
 
 Los `Target` se concentran en `ReservaYa`, `FlujosUi` y `Mailpit`. Se emplea XPath para relacionar etiquetas, textos y contenedores, y localizar la tarjeta de una reserva o un servicio concreto. Esto permite corregir un selector en su definición compartida.
 
-La espera implícita de WebDriver está desactivada. Las tareas usan `WaitUntil` con condiciones como visibilidad o posibilidad de hacer clic, habitualmente con un límite de 15 segundos. Así se espera una condición de la pantalla antes de continuar. Chrome se configura con una ventana de 1440 × 1000 y lenguaje `es-CO`.
+La espera implícita de WebDriver está desactivada. Antes de continuar se espera una condición de la pantalla (visible, clicable, presente) mediante `utils/Esperar`. Los tiempos no se escriben en el código; se definen en `src/test/resources/serenity.conf`:
+
+| Propiedad (milisegundos) | Valor | Para qué sirve | Quién la lee |
+|---|---|---|---|
+| `webdriver.wait.for.timeout` | 15000 | Máximo para que un elemento aparezca o cambie | `utils/TiempoDeEspera.maximo()` |
+| `mailpit.wait.timeout` | 30000 | Máximo para que llegue un correo | `utils/TiempoDeEspera.correo()` |
+| `demo.pause.milliseconds` | 0 | Pausa fija entre acciones, solo para exponer | `utils/PausaDeDemostracion` |
+
+Cualquiera se puede cambiar para una ejecución, por ejemplo `./gradlew test '-Ddemo.pause.milliseconds=2000'`. La pausa de demostración está incluida en 33 de las 51 interacciones; no se aplica a todas.
+
+Reglas de capas: las tareas solo llaman interacciones u otras tareas; `Click`, `Enter`, `Open` y las esperas van en las interacciones. Chrome se configura con una ventana de 1440 × 1000 y lenguaje `es-CO`.
 
 Para los controles nativos de fecha y hora se utilizan interacciones específicas. En `FijarFecha`, Selenium ejecuta JavaScript sobre el campo de la página para asignar el valor y emitir los eventos `input` y `change` que procesa React. Esta operación modifica el control del frontend y no crea datos directamente en el servidor.
 
@@ -110,42 +122,77 @@ La [matriz de trazabilidad](docs/trazabilidad-ui.md) detalla las asociaciones. L
 
 ## Ejecutar en local
 
-Desde PowerShell en este repositorio, con los servicios del producto iniciados:
+Con los servicios del producto iniciados, usa el wrapper incluido.
+
+### Linux o macOS
+
+```bash
+# Suite completa ejecutable: 58 escenarios
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and not @pendiente_producto'
+
+# Smoke: 5 escenarios
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and @smoke'
+
+# Base inicial: 11 escenarios
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and @base11'
+
+# Solo ampliación ejecutable: 47 escenarios
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and @ampliacion and not @pendiente_producto'
+
+# Un solo escenario
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@E2E-032'
+```
+
+Sin `-Dheadless.mode=true` se abre Chrome para observar la ejecución. Para correr sin ventana:
+
+```bash
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and @smoke' \
+  '-Dheadless.mode=true'
+```
+
+Para una demostración con pausas:
+
+```bash
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and @smoke' \
+  '-Ddemo.pause.milliseconds=1000'
+```
+
+### Windows PowerShell
 
 ```powershell
-# Toda la UI ejecutable: 58 escenarios
+# Scripts de apoyo; usan el wrapper si está disponible
 .\ejecutar-pruebas.ps1 -Grupo ui
-
-# La misma suite sin mostrar la ventana de Chrome
 .\ejecutar-pruebas.ps1 -Grupo ui -SinVentana
-
-# Los 11 escenarios originales
 .\ejecutar-pruebas.ps1 -Grupo base11
-
-# Solo la ampliación ejecutable: 47 escenarios
 .\ejecutar-pruebas.ps1 -Grupo nuevas
-
-# Los cinco escenarios smoke
 .\ejecutar-pruebas.ps1 -Grupo smoke -SinVentana
+
+# O directamente con el wrapper
+.\gradlew.bat --no-daemon test --console=plain `
+  '-Dcucumber.filter.tags=@ui and not @pendiente_producto'
 ```
 
-El script comprueba `JAVA_HOME`; si no apunta a un JDK válido, intenta localizar un JDK 21 de Eclipse Adoptium. Después llama a Gradle con el filtro del grupo. `criticas` es el grupo predeterminado; `ui`, `criticas` y `todas` excluyen `@pendiente_producto`.
-
-Para seleccionar una HU o un escenario directamente:
-
-```powershell
-gradle --no-daemon test '-Dcucumber.filter.tags=@ui and @HU-05 and not @pendiente_producto' '-Dheadless.mode=true'
-gradle --no-daemon test '-Dcucumber.filter.tags=@E2E-032' '-Dheadless.mode=true'
-```
+El script comprueba `JAVA_HOME`; si no apunta a un JDK válido, intenta localizar un JDK 21 de Eclipse Adoptium. `criticas` es el grupo predeterminado; `ui`, `criticas` y `todas` excluyen `@pendiente_producto`.
 
 Para revisar las asociaciones entre Gherkin y pasos sin realizar los recorridos, o ejecutar por separado el contrato pendiente:
 
-```powershell
+```bash
 # Dry-run de los 59 escenarios; no valida comportamiento
-.\ejecutar-pruebas.ps1 -Grupo validar
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui' \
+  '-Dcucumber.execution.dry-run=true'
 
 # Fuera de la suite normal: depende de una función pendiente del producto
-.\ejecutar-pruebas.ps1 -Grupo pendientes -SinVentana
+./gradlew --no-daemon test --console=plain \
+  '-Dcucumber.filter.tags=@ui and @pendiente_producto' \
+  '-Dheadless.mode=true'
 ```
 
 ### Configurar las direcciones
@@ -166,11 +213,11 @@ La tarea `test` ejecuta `Runner`, escribe el JSON de Cucumber y registra los res
 | Reporte HTML de Serenity | `build/reports/serenity/index.html` |
 | Reporte de pruebas de Gradle/JUnit | `build/reports/tests/test/index.html` |
 | Resultados Cucumber | `build/reports/cucumber/resultados.json` |
-| Evidencia estática de la ejecución aprobada | [Reporte PDF del 24 de noviembre de 2026](docs/evidencias/Reporte_Serenity_2026-11-24.pdf) |
+| Evidencia histórica | [Reporte PDF del 24 de noviembre de 2026](docs/evidencias/Reporte_Serenity_2026-11-24.pdf) |
 
-El PDF conserva el resumen y la lista de los 58 escenarios aprobados. Es una exportación documental; el detalle navegable de pasos se consulta en el HTML local. Una ejecución posterior no actualiza automáticamente este PDF.
+El PDF conserva el resumen de la ejecución previa a la refactorización. Es una exportación documental; el detalle navegable de pasos de la corrida actual se consulta en el HTML local. Una ejecución posterior no actualiza automáticamente este PDF.
 
-El [registro de validación](docs/estado-validacion.md) conserva el seguimiento previo de ajustes. Para el resultado consolidado del 24 de noviembre, la referencia es la evidencia enlazada en este README.
+El [registro de validación](docs/estado-validacion.md) documenta la corrida post-refactor: 58/58 escenarios, 218/218 pasos y 0 fallos.
 
 ## Archivos que se versionan
 

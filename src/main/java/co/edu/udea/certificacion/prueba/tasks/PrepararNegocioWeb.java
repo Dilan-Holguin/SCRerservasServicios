@@ -1,36 +1,48 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.models.*;
-import co.edu.udea.certificacion.prueba.questions.DatosEnPantalla;
-import co.edu.udea.certificacion.prueba.userinterfaces.ReservaYa;
-import net.serenitybdd.screenplay.Performable;
+import co.edu.udea.certificacion.prueba.interactions.ConfirmarLaCreacionDelBloque;
+import co.edu.udea.certificacion.prueba.interactions.GuardarElServicioPrincipal;
+import co.edu.udea.certificacion.prueba.models.CuentaPrueba;
+import co.edu.udea.certificacion.prueba.models.DatosEscenario;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
+import net.serenitybdd.screenplay.Tasks;
 
-public final class PrepararNegocioWeb {
-    private PrepararNegocioWeb() { }
-    public static Performable para(DatosEscenario datos, int dias, boolean agenda, boolean cliente) {
-        return Task.where("{0} prepara un negocio independiente mediante los formularios", actor -> {
-            datos.fechaDentroDe(dias);
-            datos.proveedor = new CuentaPrueba("PROVEEDOR");
-            actor.attemptsTo(RegistrarCuentaWeb.con(datos.proveedor), VerificarCuentaWeb.paraPrepararCuenta(datos.proveedor),
-                    IniciarSesionWeb.con(datos.proveedor.email, datos.proveedor.clave),
-                    WaitUntil.the(ReservaYa.panel("PROVEEDOR"), isVisible()).forNoMoreThan(15).seconds(),
-                    WaitUntil.the(ReservaYa.fichaServicio(datos.proveedor.servicio), isVisible()).forNoMoreThan(15).seconds());
-            datos.servicio = actor.asksFor(DatosEnPantalla.idServicio(datos.proveedor.servicio));
-            if (agenda) actor.attemptsTo(CrearAgendaWeb.para(datos.servicio, datos.fecha.getDayOfWeek().getValue(), "08:00", "12:00"),
-                    WaitUntil.the(ReservaYa.BLOQUE_CREADO, isVisible()).forNoMoreThan(15).seconds());
-            datos.cuenta = datos.proveedor;
-            datos.rolActual = "PROVEEDOR";
-            if (cliente) {
-                datos.cliente = new CuentaPrueba("CLIENTE");
-                actor.attemptsTo(RegistrarCuentaWeb.con(datos.cliente), VerificarCuentaWeb.paraPrepararCuenta(datos.cliente),
-                        IniciarSesionWeb.con(datos.cliente.email, datos.cliente.clave),
-                        WaitUntil.the(ReservaYa.panel("CLIENTE"), isVisible()).forNoMoreThan(15).seconds());
-                datos.cuenta = datos.cliente;
-                datos.rolActual = "CLIENTE";
-            }
-        });
+public class PrepararNegocioWeb implements Task {
+
+    private final DatosEscenario datos;
+    private final int dias;
+    private final boolean conAgenda;
+    private final boolean conCliente;
+
+    public PrepararNegocioWeb(DatosEscenario datos, int dias, boolean conAgenda, boolean conCliente) {
+        this.datos = datos;
+        this.dias = dias;
+        this.conAgenda = conAgenda;
+        this.conCliente = conCliente;
+    }
+
+    @Override
+    @Step("{0} prepara un negocio mediante los formularios")
+    public <T extends Actor> void performAs(T actor) {
+        CuentaPrueba proveedor = datos.nuevoNegocio(dias);
+        actor.attemptsTo(
+                RegistrarCuentaWeb.con(proveedor),
+                VerificarCuentaWeb.paraPrepararCuenta(proveedor),
+                AccederConCuentaWeb.de(datos, proveedor),
+                GuardarElServicioPrincipal.en(datos));
+        if (conAgenda) {
+            actor.attemptsTo(
+                    CrearAgendaWeb.para(datos.servicio, datos.diaDeLaAgenda(), "08:00", "12:00"),
+                    ConfirmarLaCreacionDelBloque.enPantalla());
+        }
+        if (conCliente) {
+            actor.attemptsTo(CrearClienteWeb.principal(datos));
+        }
+    }
+
+    public static PrepararNegocioWeb para(DatosEscenario datos, int dias, boolean conAgenda, boolean conCliente) {
+        return Tasks.instrumented(PrepararNegocioWeb.class, datos, dias, conAgenda, conCliente);
     }
 }

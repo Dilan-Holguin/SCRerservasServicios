@@ -1,12 +1,14 @@
 package co.edu.udea.certificacion.prueba.interactions;
 
+import co.edu.udea.certificacion.prueba.utils.Esperar;
+import co.edu.udea.certificacion.prueba.utils.PausaDeDemostracion;
+import co.edu.udea.certificacion.prueba.utils.TiempoDeEspera;
 import co.edu.udea.certificacion.prueba.userinterfaces.Mailpit;
 import co.edu.udea.certificacion.prueba.utils.ConfiguracionUi;
 import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Interaction;
 import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.actions.*;
-import net.serenitybdd.screenplay.waits.WaitUntil;
 import org.openqa.selenium.WindowType;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.TimeoutException;
@@ -16,10 +18,8 @@ import net.serenitybdd.annotations.Step;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Arrays;
 import static net.serenitybdd.screenplay.Tasks.instrumented;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
 
 /** Busca el destinatario exacto en Mailpit web, sin consultar su servicio REST. */
 public class LeerCorreoVerificacion implements Interaction {
@@ -52,10 +52,10 @@ public class LeerCorreoVerificacion implements Interaction {
             // No depende únicamente de que el websocket actualice los resultados abiertos.
             for (int intento = 0; intento < 2 && !encontrado; intento++) {
                 actor.attemptsTo(Open.url(ConfiguracionUi.correoUrl()),
-                        WaitUntil.the(Mailpit.BUSQUEDA, isVisible()).forNoMoreThan(30).seconds(),
+                        Esperar.correoVisible(Mailpit.BUSQUEDA),
                         Enter.theValue("to:" + email).into(Mailpit.BUSQUEDA).thenHit(Keys.ENTER));
                 try {
-                    new WebDriverWait(driver, Duration.ofSeconds(30))
+                    new WebDriverWait(driver, TiempoDeEspera.correo())
                             .ignoring(StaleElementReferenceException.class)
                             .until(d -> d.findElements(Mailpit.selectorMensaje(email))
                                     .stream().anyMatch(e -> e.isDisplayed()));
@@ -67,18 +67,20 @@ public class LeerCorreoVerificacion implements Interaction {
             if (!encontrado) {
                 if (obligatorio) throw new AssertionError(
                         "Mailpit no mostró el correo de verificación de " + email
-                        + " tras dos búsquedas de 30 segundos. Revisar el envío SMTP y la bandeja local.");
+                        + " tras dos búsquedas de "
+                        + TiempoDeEspera.correo().toSeconds() + " segundos. Revisar el envío SMTP y la bandeja local.");
                 return;
             }
             actor.attemptsTo(Click.on(Mailpit.mensaje(email)));
             if (Mailpit.TEXTO.resolveFor(actor).isCurrentlyVisible()) actor.attemptsTo(Click.on(Mailpit.TEXTO));
-            actor.attemptsTo(WaitUntil.the(Mailpit.ENLACE, isVisible()).forNoMoreThan(15).seconds());
+            actor.attemptsTo(Esperar.visible(Mailpit.ENLACE));
             String query = URI.create(Mailpit.ENLACE.resolveFor(actor).getAttribute("href")).getRawQuery();
             String token = Arrays.stream(query.split("&")).filter(p -> p.startsWith("token="))
                     .map(p -> URLDecoder.decode(p.substring(6), StandardCharsets.UTF_8))
                     .findFirst().orElseThrow(() -> new IllegalStateException("Correo sin enlace de verificación"));
             actor.remember(TOKEN, token);
             actor.remember(ENCONTRADO, true);
+            PausaDeDemostracion.hacer();
         } finally {
             driver.close();
             driver.switchTo().window(original);

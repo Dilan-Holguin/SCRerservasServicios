@@ -1,28 +1,33 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.userinterfaces.*;
-import co.edu.udea.certificacion.prueba.utils.ConfiguracionUi;
-import net.serenitybdd.screenplay.Performable;
+import co.edu.udea.certificacion.prueba.interactions.AbrirLaFichaDelServicio;
+import co.edu.udea.certificacion.prueba.interactions.EsperarElResultadoDeLosTurnos;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.actions.Open;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.*;
+import net.serenitybdd.screenplay.Tasks;
 
-public final class ConsultarTurnosWeb {
-    private ConsultarTurnosWeb() { }
-    public static Performable de(int servicio, String desde, String hasta) {
-        return Task.where("{0} consulta la ficha pública y espera su disponibilidad",
-                Open.url(ConfiguracionUi.webUrl() + "/servicios/" + servicio + "?desde=" + desde + "&hasta=" + hasta),
-                WaitUntil.the(FlujosUi.DESDE, isVisible()).forNoMoreThan(15).seconds(),
-                esperarResultado());
+public class ConsultarTurnosWeb implements Task {
+
+    private final int servicio;
+    private final String desde;
+    private final String hasta;
+
+    public ConsultarTurnosWeb(int servicio, String desde, String hasta) {
+        this.servicio = servicio;
+        this.desde = desde;
+        this.hasta = hasta;
     }
-    public static Performable esperarResultado() {
-        return Task.where("{0} espera el resultado de los turnos", actor -> {
-            org.openqa.selenium.WebDriver driver = net.serenitybdd.screenplay.abilities.BrowseTheWeb.as(actor).getDriver();
-            new org.openqa.selenium.support.ui.WebDriverWait(driver, java.time.Duration.ofSeconds(15)).until(d ->
-                    !d.findElements(org.openqa.selenium.By.cssSelector("[role='grid']")).isEmpty()
-                    || FlujosUi.SIN_TURNOS.resolveFor(actor).isCurrentlyVisible()
-                    || ReservaYa.ALERTA.resolveFor(actor).isCurrentlyVisible());
-        });
+
+    @Override
+    @Step("{0} consulta la disponibilidad de la ficha pública")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+                AbrirLaFichaDelServicio.entre(servicio, desde, hasta),
+                EsperarElResultadoDeLosTurnos.enLaFicha());
+    }
+
+    public static ConsultarTurnosWeb de(int servicio, String desde, String hasta) {
+        return Tasks.instrumented(ConsultarTurnosWeb.class, servicio, desde, hasta);
     }
 }

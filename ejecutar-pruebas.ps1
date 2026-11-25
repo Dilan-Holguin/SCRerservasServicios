@@ -12,7 +12,13 @@ if (-not $env:JAVA_HOME -or -not (Test-Path -LiteralPath (Join-Path $env:JAVA_HO
     $env:JAVA_HOME = $jdkPruebas.FullName
 }
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
-if (-not (Get-Command gradle -ErrorAction SilentlyContinue)) { throw 'Gradle no está disponible en PATH.' }
+$gradleLocal = Join-Path $PSScriptRoot 'gradlew.bat'
+if (Test-Path -LiteralPath $gradleLocal) {
+    $gradle = $gradleLocal
+} else {
+    if (-not (Get-Command gradle -ErrorAction SilentlyContinue)) { throw 'Gradle no está disponible en PATH ni existe gradlew.bat.' }
+    $gradle = 'gradle'
+}
 $etiquetas = @{
     criticas = '@ui and @critica and not @pendiente_producto'
     ui = '@ui and not @pendiente_producto'
@@ -26,5 +32,5 @@ $etiquetas = @{
 $argumentos = @('--no-daemon', 'test', '--console=plain', "-Dcucumber.filter.tags=$($etiquetas[$Grupo])")
 if ($Grupo -eq 'validar') { $argumentos += '-Dcucumber.execution.dry-run=true' }
 if ($SinVentana) { $argumentos += '-Dheadless.mode=true' }
-& gradle @argumentos
+& $gradle @argumentos
 exit $LASTEXITCODE

@@ -1,22 +1,40 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.interactions.FijarHora;
-import co.edu.udea.certificacion.prueba.userinterfaces.ReservaYa;
-import co.edu.udea.certificacion.prueba.utils.ConfiguracionUi;
-import net.serenitybdd.screenplay.Performable;
+import net.serenitybdd.screenplay.Tasks;
+import co.edu.udea.certificacion.prueba.interactions.AbrirLaAgendaDelServicio;
+import co.edu.udea.certificacion.prueba.interactions.PublicarElBloque;
+import java.util.List;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.actions.*;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
 
-public final class CrearAgendaWeb {
-    private CrearAgendaWeb() { }
-    public static Performable para(int servicio, int dia, String desde, String hasta) {
-        return Task.where("{0} publica su agenda semanal",
-                Open.url(ConfiguracionUi.webUrl() + "/panel/proveedor?seccion=agenda"),
-                WaitUntil.the(ReservaYa.SELECTOR_SERVICIO, isVisible()).forNoMoreThan(15).seconds(),
-                SelectFromOptions.byValue(String.valueOf(servicio)).from(ReservaYa.SELECTOR_SERVICIO),
-                Click.on(ReservaYa.dia(dia)), FijarHora.a(ReservaYa.HORA_INICIO, desde), FijarHora.a(ReservaYa.HORA_FIN, hasta),
-                Click.on(ReservaYa.CREAR_BLOQUES));
+public class CrearAgendaWeb implements Task {
+
+    private final int servicio;
+    private final List<Integer> dias;
+    private final String desde;
+    private final String hasta;
+
+    public CrearAgendaWeb(int servicio, List<Integer> dias, String desde, String hasta) {
+        this.servicio = servicio;
+        this.dias = dias;
+        this.desde = desde;
+        this.hasta = hasta;
+    }
+
+    @Override
+    @Step("{0} publica su agenda semanal")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+                AbrirLaAgendaDelServicio.numero(servicio),
+                PublicarElBloque.en(dias, desde, hasta));
+    }
+
+    public static CrearAgendaWeb para(int servicio, int dia, String desde, String hasta) {
+        return paraDias(servicio, List.of(dia), desde, hasta);
+    }
+
+    public static CrearAgendaWeb paraDias(int servicio, List<Integer> dias, String desde, String hasta) {
+        return Tasks.instrumented(CrearAgendaWeb.class, servicio, dias, desde, hasta);
     }
 }

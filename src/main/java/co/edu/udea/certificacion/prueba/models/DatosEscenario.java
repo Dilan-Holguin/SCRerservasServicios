@@ -24,4 +24,56 @@ public final class DatosEscenario {
     public void fechaDentroDe(int dias) {
         fecha = LocalDate.now(ZoneId.of("America/Bogota")).plusDays(dias);
     }
+
+    public CuentaPrueba nuevoNegocio(int dias) {
+        fechaDentroDe(dias);
+        proveedor = new CuentaPrueba("PROVEEDOR");
+        return proveedor;
+    }
+
+    public CuentaPrueba nuevoCliente(boolean adicional) {
+        CuentaPrueba nueva = new CuentaPrueba("CLIENTE");
+        if (adicional) {
+            otroCliente = nueva;
+        } else {
+            cliente = nueva;
+        }
+        return nueva;
+    }
+
+    /** Día de la semana (1 = lunes) de la fecha preparada. */
+    public int diaDeLaAgenda() {
+        return fecha.getDayOfWeek().getValue();
+    }
+
+    public String nombreServicioAdicional() {
+        return proveedor.servicio + " B";
+    }
+
+    public String nuevoRecurso() {
+        nombreRecurso = "Recurso " + java.util.UUID.randomUUID();
+        return nombreRecurso;
+    }
+
+    /** Proveedor cuyos datos se pueden limpiar, o null si no hay ninguno verificado. */
+    public CuentaPrueba proveedorPorLimpiar() {
+        CuentaPrueba candidato = proveedor != null ? proveedor
+                : cuenta != null && cuenta.rol.equals("PROVEEDOR") ? cuenta : null;
+        return candidato != null && candidato.verificada ? candidato : null;
+    }
+
+    public java.util.Set<Integer> reservasPorLimpiar() {
+        var reservas = new java.util.LinkedHashSet<>(reservasCreadas);
+        if (reserva != 0) {
+            reservas.add(reserva);
+        }
+        return reservas;
+    }
+
+    public java.util.Set<String> serviciosPorLimpiar(CuentaPrueba dueno) {
+        var servicios = new java.util.LinkedHashSet<String>();
+        servicios.add(dueno.servicio);
+        servicios.addAll(serviciosExtra.values());
+        return servicios;
+    }
 }

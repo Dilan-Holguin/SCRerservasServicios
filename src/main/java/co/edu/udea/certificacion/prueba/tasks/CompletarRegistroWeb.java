@@ -1,36 +1,38 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.interactions.EscribirClave;
+import co.edu.udea.certificacion.prueba.interactions.AbrirElFormularioDeRegistro;
+import co.edu.udea.certificacion.prueba.interactions.CerrarSesionSiEstaAbierta;
+import co.edu.udea.certificacion.prueba.interactions.LlenarElFormularioDeRegistro;
+import co.edu.udea.certificacion.prueba.interactions.PulsarCrearCuenta;
 import co.edu.udea.certificacion.prueba.models.CuentaPrueba;
-import co.edu.udea.certificacion.prueba.userinterfaces.*;
-import co.edu.udea.certificacion.prueba.utils.ConfiguracionUi;
-import net.serenitybdd.screenplay.Performable;
+import co.edu.udea.certificacion.prueba.models.FormularioRegistro;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.actions.*;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.*;
+import net.serenitybdd.screenplay.Tasks;
 
-public final class CompletarRegistroWeb {
-    private CompletarRegistroWeb() { }
-    public static Performable con(CuentaPrueba cuenta, String defecto) {
-        return Task.where("{0} completa el formulario de registro: " + defecto, actor -> {
-            actor.attemptsTo(CerrarSesionWeb.siExiste(), Open.url(ConfiguracionUi.webUrl() + "/registro"),
-                    WaitUntil.the(ReservaYa.NOMBRE, isVisible()).forNoMoreThan(15).seconds(),
-                    Click.on(ReservaYa.rol(cuenta.rol)),
-                    Enter.theValue(defecto.equals("nombre vacío") ? "" : cuenta.nombre).into(ReservaYa.NOMBRE),
-                    Enter.theValue(defecto.equals("correo vacío") ? "" : defecto.equals("correo inválido") ? "correo-invalido" : cuenta.email).into(ReservaYa.EMAIL),
-                    EscribirClave.sinExponerla(defecto.equals("clave corta") ? "12345678901" : cuenta.clave));
-            if (cuenta.rol.equals("PROVEEDOR")) {
-                if (!defecto.equals("sin servicio"))
-                    actor.attemptsTo(Enter.theValue(cuenta.servicio).into(ReservaYa.NOMBRE_SERVICIO));
-                if (!defecto.equals("sin servicio") && !defecto.equals("sin categoría"))
-                    actor.attemptsTo(WaitUntil.the(ReservaYa.PRIMERA_CATEGORIA, isPresent()).forNoMoreThan(15).seconds(),
-                            SelectFromOptions.byIndex(1).from(ReservaYa.CATEGORIA));
-                if (defecto.equals("duración inválida"))
-                    actor.attemptsTo(Enter.theValue("0").into(FlujosUi.campoRegistro("servicios[0].duracionMinutos")));
-                if (defecto.equals("capacidad inválida"))
-                    actor.attemptsTo(Enter.theValue("0").into(FlujosUi.campoRegistro("servicios[0].capacidad")));
-            }
-        });
+/** Camino de excepción: envía el formulario y NO espera la confirmación. */
+public class CompletarRegistroWeb implements Task {
+
+    private final CuentaPrueba cuenta;
+    private final String defecto;
+
+    public CompletarRegistroWeb(CuentaPrueba cuenta, String defecto) {
+        this.cuenta = cuenta;
+        this.defecto = defecto;
+    }
+
+    @Override
+    @Step("{0} intenta registrarse con datos inválidos")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+                CerrarSesionSiEstaAbierta.enElMenu(),
+                AbrirElFormularioDeRegistro.deCuenta(),
+                LlenarElFormularioDeRegistro.con(FormularioRegistro.conDefecto(cuenta, defecto)),
+                PulsarCrearCuenta.enElFormulario());
+    }
+
+    public static CompletarRegistroWeb con(CuentaPrueba cuenta, String defecto) {
+        return Tasks.instrumented(CompletarRegistroWeb.class, cuenta, defecto);
     }
 }

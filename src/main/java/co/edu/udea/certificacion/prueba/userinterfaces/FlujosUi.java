@@ -25,6 +25,7 @@ public final class FlujosUi {
     public static final Target DESDE = css("fecha desde", "#rango-desde");
     public static final Target HASTA = css("fecha hasta", "#rango-hasta");
     public static final Target DISPONIBILIDAD = css("disponibilidad", "[aria-labelledby='titulo-disponibilidad']");
+    public static final Target SIN_RESERVAS = xpath("historial vacío", "//main//*[normalize-space()='Todavía no hay reservas']");
     public static final Target SIN_TURNOS = xpath("sin turnos", "//main//*[normalize-space()='No hay turnos disponibles en este rango']");
     public static final Target FILTRO_ESTADO = css("filtro de estado del historial", "#filtro-estado");
     public static final Target RECURSO_NOMBRE = campo("titulo-recursos", "Nombre del recurso");

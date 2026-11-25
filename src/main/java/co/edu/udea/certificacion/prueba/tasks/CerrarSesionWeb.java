@@ -1,19 +1,20 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
-import co.edu.udea.certificacion.prueba.userinterfaces.ReservaYa;
-import net.serenitybdd.screenplay.Performable;
+import co.edu.udea.certificacion.prueba.interactions.CerrarSesionSiEstaAbierta;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.actions.Click;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isNotVisible;
+import net.serenitybdd.screenplay.Tasks;
 
-public final class CerrarSesionWeb {
-    private CerrarSesionWeb() { }
-    public static Performable siExiste() {
-        return Task.where("{0} cierra su sesión mediante el menú", actor -> {
-            if (ReservaYa.CERRAR_SESION.resolveFor(actor).isVisible()) actor.attemptsTo(
-                    Click.on(ReservaYa.CERRAR_SESION),
-                    WaitUntil.the(ReservaYa.CERRAR_SESION, isNotVisible()).forNoMoreThan(15).seconds());
-        });
+public class CerrarSesionWeb implements Task {
+
+    @Override
+    @Step("{0} cierra su sesión")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(CerrarSesionSiEstaAbierta.enElMenu());
+    }
+
+    public static CerrarSesionWeb siExiste() {
+        return Tasks.instrumented(CerrarSesionWeb.class);
     }
 }

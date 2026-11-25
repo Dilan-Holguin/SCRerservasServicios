@@ -1,29 +1,42 @@
 package co.edu.udea.certificacion.prueba.tasks;
 
+import co.edu.udea.certificacion.prueba.interactions.ConfirmarElRecurso;
+import co.edu.udea.certificacion.prueba.interactions.ConfirmarLaCreacionDelBloque;
 import co.edu.udea.certificacion.prueba.models.DatosEscenario;
-import co.edu.udea.certificacion.prueba.userinterfaces.FlujosUi;
-import net.serenitybdd.screenplay.Performable;
+import net.serenitybdd.annotations.Step;
+import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.Task;
-import net.serenitybdd.screenplay.waits.WaitUntil;
-import static net.serenitybdd.screenplay.matchers.WebElementStateMatchers.isVisible;
+import net.serenitybdd.screenplay.Tasks;
 
-public final class PrepararRecursosCompartidosWeb {
-    private PrepararRecursosCompartidosWeb() { }
-    public static Performable para(DatosEscenario datos) {
-        return Task.where("{0} prepara dos servicios que comparten un recurso", actor -> {
-            actor.attemptsTo(PrepararNegocioWeb.para(datos, 10, true, false));
-            actor.attemptsTo(CrearServicioWeb.adicional(datos));
-            // La fecha y el segundo identificador se leen después de crearlos.
-            actor.attemptsTo(CrearAgendaWeb.para(datos.servicioSecundario, datos.fecha.getDayOfWeek().getValue(), "08:00", "12:00"),
-                    WaitUntil.the(co.edu.udea.certificacion.prueba.userinterfaces.ReservaYa.BLOQUE_CREADO, isVisible()).forNoMoreThan(15).seconds());
-            datos.nombreRecurso = "Recurso " + java.util.UUID.randomUUID();
-            actor.attemptsTo(GestionarRecursosWeb.crear(datos.nombreRecurso, true),
-                    WaitUntil.the(FlujosUi.recurso(datos.nombreRecurso), isVisible()).forNoMoreThan(15).seconds(),
-                    GestionarRecursosWeb.asignar(datos.servicio, datos.nombreRecurso, true),
-                    GestionarRecursosWeb.asignar(datos.servicioSecundario, datos.nombreRecurso, true),
-                    FlujoReservaWeb.crearCliente(datos, false),
-                    FlujoReservaWeb.reservar(datos, datos.servicio, datos.proveedor.servicio),
-                    FlujoReservaWeb.crearCliente(datos, true));
-        });
+public class PrepararRecursosCompartidosWeb implements Task {
+
+    private final DatosEscenario datos;
+
+    public PrepararRecursosCompartidosWeb(DatosEscenario datos) {
+        this.datos = datos;
+    }
+
+    @Override
+    @Step("{0} prepara dos servicios que comparten un recurso")
+    public <T extends Actor> void performAs(T actor) {
+        actor.attemptsTo(
+                PrepararNegocioWeb.para(datos, 10, true, false),
+                CrearServicioWeb.adicional(datos));
+        // Se llama aparte: el segundo identificador se conoce después de crear el servicio.
+        String recurso = datos.nuevoRecurso();
+        actor.attemptsTo(
+                CrearAgendaWeb.para(datos.servicioSecundario, datos.diaDeLaAgenda(), "08:00", "12:00"),
+                ConfirmarLaCreacionDelBloque.enPantalla(),
+                CrearRecursoWeb.con(recurso, true),
+                ConfirmarElRecurso.llamado(recurso),
+                AsignarRecursoWeb.al(datos.servicio, recurso, true),
+                AsignarRecursoWeb.al(datos.servicioSecundario, recurso, true),
+                CrearClienteWeb.principal(datos),
+                ReservarYGuardarWeb.en(datos, datos.servicio, datos.proveedor.servicio),
+                CrearClienteWeb.adicional(datos));
+    }
+
+    public static PrepararRecursosCompartidosWeb para(DatosEscenario datos) {
+        return Tasks.instrumented(PrepararRecursosCompartidosWeb.class, datos);
     }
 }
