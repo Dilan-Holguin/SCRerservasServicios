@@ -6,9 +6,21 @@ El proyecto se generó con el scaffolding `io.github.jumosqu12.screenplayarchite
 
 **Última validación: 25 de noviembre de 2026.** Después de refactorizar las tareas, interacciones y esperas, se ejecutaron y aprobaron los **58 escenarios de la suite UI normal**. Hay **59 escenarios escritos**: 11 del avance inicial y 48 de ampliación. E2E-052 está marcado como `@pendiente_producto` y queda fuera de esos 58 porque espera un correo de cancelación que la aplicación todavía no envía.
 
-La corrida se hizo contra la aplicación en el commit `27ac566`: 58 escenarios aprobados, 218 pasos aprobados, 0 fallos y una duración de 19 min 43 s. El reporte navegable de esa ejecución queda en `build/reports/serenity/index.html`.
+La corrida se hizo contra [ReservasServicios](https://github.com/Satshman/ReservasServicios) en el commit [`27ac566`](https://github.com/Satshman/ReservasServicios/commit/27ac5661687aeeaf17daf837d100bf0fc5d8a0fe): 58 escenarios aprobados, 218 pasos aprobados, 0 fallos y una duración de 19 min 43 s. El reporte navegable de esa ejecución queda en `build/reports/serenity/index.html`.
 
 La evidencia PDF corresponde a la ejecución previa a la refactorización. Se conserva como registro histórico; no debe presentarse como evidencia del código actual.
+
+## Proyecto bajo prueba
+
+Esta suite valida **ReservaYa**, que se encuentra en un repositorio separado:
+
+- Repositorio: https://github.com/Satshman/ReservasServicios
+- Commit validado: [`27ac566`](https://github.com/Satshman/ReservasServicios/commit/27ac5661687aeeaf17daf837d100bf0fc5d8a0fe)
+- Hash completo: `27ac5661687aeeaf17daf837d100bf0fc5d8a0fe`
+- Instrucciones de arranque: [README de ReservaYa](https://github.com/Satshman/ReservasServicios#readme)
+- Servicios esperados: frontend `5173`, backend `8082`, Mailpit `8025` y PostgreSQL.
+
+> La suite no incluye el código de la aplicación ni la levanta. El resultado reportado corresponde al commit indicado; si la aplicación cambia, vuelve a ejecutar al menos el smoke y actualiza la evidencia.
 
 ## Herramientas y entorno
 
